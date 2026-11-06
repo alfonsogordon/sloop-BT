@@ -13,7 +13,7 @@ typedef struct {
     uint16_t mute, solo;           /* bit per actual drum sound lane */
     uint8_t assignment[SLOOP_BT_STRIPS]; /* physical strips 5..8 -> 0..15 */
 } sloop_bt_drums_t;
-static void sloop_bt_drums_reset(sloop_bt_drums_t *m)
+static inline void sloop_bt_drums_reset(sloop_bt_drums_t *m)
 {
     unsigned i;
     static const uint8_t initial[4] = {0, 2, 4, 3}; /* kick, snare, closed hat, clap */
@@ -21,26 +21,26 @@ static void sloop_bt_drums_reset(sloop_bt_drums_t *m)
     for(i=0;i<SLOOP_BT_STRIPS;i++)m->assignment[i]=initial[i];
     m->mute=m->solo=0;
 }
-static unsigned sloop_bt_drum_strip_lane(const sloop_bt_drums_t *m,unsigned strip)
+static inline unsigned sloop_bt_drum_strip_lane(const sloop_bt_drums_t *m,unsigned strip)
 {
     return strip < 4u || strip >= 8u ? SLOOP_BT_LANES : m->assignment[strip-4u];
 }
-static void sloop_bt_drum_assign(sloop_bt_drums_t *m,unsigned strip,unsigned lane)
+static inline void sloop_bt_drum_assign(sloop_bt_drums_t *m,unsigned strip,unsigned lane)
 {
     if(strip>=4u && strip<8u && lane<SLOOP_BT_LANES) m->assignment[strip-4u]=(uint8_t)lane;
 }
-static void sloop_bt_drum_level(sloop_bt_drums_t *m,unsigned strip,unsigned level)
+static inline void sloop_bt_drum_level(sloop_bt_drums_t *m,unsigned strip,unsigned level)
 {
     unsigned lane=sloop_bt_drum_strip_lane(m,strip);
     if(lane>=SLOOP_BT_LANES)return;
     m->gain[lane]=(uint8_t)(level>127u?127u:level);
 }
-static void sloop_bt_drum_toggle_mute(sloop_bt_drums_t *m,unsigned strip)
+static inline void sloop_bt_drum_toggle_mute(sloop_bt_drums_t *m,unsigned strip)
 {
     unsigned lane=sloop_bt_drum_strip_lane(m,strip);
     if(lane<SLOOP_BT_LANES)m->mute^=(uint16_t)(1u<<lane);
 }
-static void sloop_bt_drum_toggle_solo(sloop_bt_drums_t *m,unsigned strip)
+static inline void sloop_bt_drum_toggle_solo(sloop_bt_drums_t *m,unsigned strip)
 {
     unsigned lane=sloop_bt_drum_strip_lane(m,strip);
     if(lane<SLOOP_BT_LANES)m->solo^=(uint16_t)(1u<<lane);
@@ -50,7 +50,7 @@ static void sloop_bt_drum_toggle_solo(sloop_bt_drums_t *m,unsigned strip)
  * Mixing code should smooth value changes before applying this function
  * in a real-time path to avoid discontinuities on sustained drum tails.
  */
-static int32_t sloop_bt_drum_gain_sample(const sloop_bt_drums_t *m,unsigned lane,int32_t sample)
+static inline int32_t sloop_bt_drum_gain_sample(const sloop_bt_drums_t *m,unsigned lane,int32_t sample)
 {
     unsigned gain;
     if(lane>=SLOOP_BT_LANES)return sample;
