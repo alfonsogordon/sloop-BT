@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#define BLE_API static
+#define BLE_API /* standalone unit test: full stack not included */
 #include "../third_party/optimist_ble/ble_scan.c"
 
 static int fails;
