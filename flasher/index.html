@@ -36,7 +36,7 @@ footer{font-size:13px;color:var(--muted);padding-top:25px;border-top:1px solid v
 <p>Install a <strong>verified SLOOP-family</strong> firmware package from your own computer, directly over USB-MIDI in Chrome or Edge. This page uses SLOOP's existing updater protocol.</p>
 <div class="grid">
 <section class="card"><h2>Current stable SLOOP</h2><p>Use the original author's installer for normal, released SLOOP firmware.</p><a class="action" href="https://isod89.github.io/sloop-fm1/" target="_blank" rel="noopener">Open original SLOOP installer</a></section>
-<section class="card"><h2>Bluetooth development</h2><p>SMC-Mixer pairing, drum lane mixing, on-device menus and release packaging are still in development. Do not flash an untested build.</p><a class="action" href="https://github.com/alfonsogordon/sloop-BT/pull/1" target="_blank" rel="noopener">View development progress</a></section>
+<section class="card"><h2>Bluetooth development</h2><p>SMC-Mixer pairing, drum lane mixing, on-device menus and release packaging are still in development. Do not flash an untested build.</p><a class="action" href="https://github.com/alfonsogordon/sloop-BT/pull/1" target="_blank" rel="noopener">View development progress</a><p><a href="./lab/">Open the safety-gated SLOOP-BT LAB flasher</a> (requires working SWD recovery; untested Bluetooth hardware).</p></section>
 <section class="card full">
 <h2>Install your local firmware package</h2>
 <p>The firmware file stays in your browser. Nothing is uploaded to a server. Only SLOOP/Felucca-format FM1_9xx packages are accepted. A matching product marker alone does not guarantee a safe firmware image: only flash a trusted, tested package.</p>
@@ -80,6 +80,8 @@ el('pkg').addEventListener('change', async () => {
     const product=productOf(bytes);
     if (!/^FM-1_9\d\d$/.test(product)) throw new Error('Not a SLOOP/Felucca-family FM1 package: ' + product);
     const hash=await sha256hex(bytes);
+    if(hash==='96b192869ca45abdcb364ca1f6fbaf89819776553a0df2b330a5c238f6fe2ab1')
+      throw new Error('UNTESTED SLOOP-BT lab firmware must be verified in the dedicated /lab/ flasher, not here.');
     selected={name:file.name,product,hash,image:logicalImage(bytes)};
     el('details').textContent=file.name+'\nProduct: '+product+'\nSHA-256: '+hash+'\nSize: '+bytes.length.toLocaleString()+' bytes';
     say('Package loaded. Verify its origin, confirm backup and click Install firmware.');
