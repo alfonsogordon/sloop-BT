@@ -137,8 +137,15 @@ static void sloop_bt_hw_poll(uint32_t now_ms)
        ble_central_state()==BLE_CS_READY && ble_midi_ready())
         sloop_bt_link_connected(&sloop_bt_link);
     else if(sloop_bt_link.state==SLOOP_BT_CONNECTING &&
-            ble_central_state()==BLE_CS_IDLE && ble_central_fail()!=BLE_CF_NONE)
+            ble_central_state()==BLE_CS_IDLE && ble_central_fail()!=BLE_CF_NONE) {
+        uint8_t fail=ble_central_fail();
+        sloop_bt_link.error=fail==BLE_CF_NEED_PAIR ? SLOOP_BT_ERR_PAIR_REQUIRED :
+                            fail==BLE_CF_NO_MIDI ? SLOOP_BT_ERR_NO_MIDI :
+                            fail==BLE_CF_GATT ? SLOOP_BT_ERR_GATT :
+                            fail==BLE_CF_LOST ? SLOOP_BT_ERR_LOST :
+                            SLOOP_BT_ERR_GENERIC;
         sloop_bt_link_failed(&sloop_bt_link);
+    }
     else if(sloop_bt_link.state==SLOOP_BT_CONNECTED && !ble_midi_ready())
         sloop_bt_link_lost(&sloop_bt_link,now_ms);
 }
