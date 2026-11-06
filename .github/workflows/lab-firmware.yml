@@ -47,6 +47,40 @@ jobs:
           grep -q "WARNING: SLOOP-BT OPTIMIST LAB / HARDWARE UNTESTED" lab-build.log
           ! grep -q '^  FAIL ' lab-build.log
           sha256sum build/sloop-bt-optimist-lab-UNTESTED.fwsc | tee lab-sha256.txt
+      - name: Verification 1 - independent exact package hash and identity
+        run: |
+          python3 - <<'PY'
+          import hashlib,sys
+          from pathlib import Path
+          sys.path.insert(0,'tools')
+          import fm1_install
+          pkg=Path('build/sloop-bt-optimist-lab-UNTESTED.fwsc').read_bytes()
+          digest=hashlib.sha256(pkg).hexdigest()
+          expected='6c2c201cec9a3cc63e35ab71c235ec4e833af180835be062557e81d3e5b18d22'
+          assert len(pkg)==610076,(len(pkg),610076)
+          assert digest==expected,('UNREVIEWED BUILD HASH',digest)
+          assert fm1_install.product_of(pkg)=='FM-1_900'
+          image=fm1_install.logical_image(pkg)
+          assert len(image)==len(pkg)-20
+          assert fm1_install.LOADER_MARK in image
+          print('PASS: verified exact lab package size, cryptographic digest, FM1 identity, loader marker and logical image')
+          PY
+      - name: Verification 2 - independent browser package parser
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          import { productOf, logicalImage, sha256hex } from './web/fm1pkg.js';
+          const pkg=new Uint8Array(fs.readFileSync('build/sloop-bt-optimist-lab-UNTESTED.fwsc'));
+          const wanted='6c2c201cec9a3cc63e35ab71c235ec4e833af180835be062557e81d3e5b18d22';
+          if(pkg.length!==610076 || productOf(pkg)!=='FM-1_900' || (await sha256hex(pkg))!==wanted ||
+             logicalImage(pkg).length!==pkg.length-20) throw Error('browser package validation failed');
+          console.log('PASS: independent WebMIDI browser package decoder and hash');
+          JS
+      - name: Verification 3 - simulated FM1 OTA update and browser protocol
+        run: |
+          python3 tests/install_test.py
+          node web/test_web.mjs
       - name: Attach untested lab image, NOT a release
         if: success()
         uses: actions/upload-artifact@v4
