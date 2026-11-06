@@ -1,0 +1,55 @@
+name: SLOOP-BT audio preservation under size optimisation
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - firmware/src/engines.c
+      - firmware/src/drums.c
+      - firmware/src/voice.c
+      - firmware/src/fx.c
+      - firmware/src/mix.c
+      - firmware/src/sloop_bt_control.c
+      - firmware/src/sloop_bt_open_measure.c
+      - tools/build.py
+      - tests/regress.c
+      - .github/workflows/audio-oz-regression.yml
+permissions:
+  contents: read
+jobs:
+  golden:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gcc-o2
+            compiler: gcc
+            opt: "-O2"
+          - name: clang-oz
+            compiler: clang
+            opt: "-Oz"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate FM1 DSP headers
+        run: |
+          mkdir -p build/gen
+          python3 tools/gen_tables.py build/gen/felucca_tables.h
+          python3 tools/gen_fm6_patches.py build/gen/felucca_fm6.h
+      - name: Compile exact SLOOP regression DSP host model
+        run: |
+          ${{ matrix.compiler }} -std=gnu11 ${{ matrix.opt }} -w -Ibuild/gen -Ifirmware/src -o /tmp/sloop-oz-regress tests/regress.c -lm
+      - name: Golden sound output, health and CPU regressions
+        env:
+          JOBS: "4"
+        run: |
+          set -o pipefail
+          /tmp/sloop-oz-regress tests/golden.txt tests/cpu_baseline.txt 2>&1 | tee "audio-${{ matrix.name }}.log"
+      - name: Preserve test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-${{ matrix.name }}
+          path: audio-${{ matrix.name }}.log
+          if-no-files-found: ignore
