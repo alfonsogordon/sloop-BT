@@ -239,8 +239,28 @@ static void t_bars(void)
     check("one device alone: 3 bars", ble_scan_bars(&t, idx[0]) == 3u);
 }
 
+static void t_discovery(void)
+{
+    static struct ble_scan_tab t;
+    uint8_t idx[BLE_SCAN_N];
+    uint32_t n;
+    ble_scan_clear(&t);
+    add(&t,0x40,0x41,0,"SMC-Mixer",0x0102,100u);
+    n=ble_scan_discovery_list(&t,idx);
+    check("named SMC-Mixer without advertised BLE-MIDI UUID is discoverable",
+          n==1u && !strcmp(t.e[idx[0]].name,"SMC-Mixer") &&
+          ble_scan_list(&t,idx)==0u && t.reports==1u);
+    add(&t,0x40,0x42,0,0,0x0103,200u);
+    check("unnamed non-MIDI advertiser stays hidden, but raw RX count increases",
+          ble_scan_discovery_list(&t,idx)==1u && t.reports==2u);
+    add(&t,0x40,0x43,1,"Keyboard",0x0104,300u);
+    n=ble_scan_discovery_list(&t,idx);
+    check("named SMC and MIDI controller can appear together",n==2u);
+}
+
 int main(void)
 {
+    t_discovery();
     t_parse();
     t_table();
     t_bars();
