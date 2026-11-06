@@ -110,3 +110,40 @@ The Bluetooth page must never block real-time audio processing.
 
 No menu entries exist in the current firmware yet. The menu is gated
 on a successful BLE port and will be implemented separately.
+
+## Hortator-style button and LED layout (implemented as protocol, not yet wired to SLOOP)
+
+The original SMC DAW mode sends four eight-button rows. We keep their
+physical meaning rather than inventing a new controller mode:
+
+| Control | Strips 1-3 | Strip 4 | Strips 5-8 |
+| --- | --- | --- | --- |
+| Fader | Synth level | Drum bus level | Individual selected drum-lane gain |
+| MUTE | Mute synth track | Mute drum bus | Mute that drum lane |
+| SOLO | Solo synth track | Solo drum bus | Solo that drum lane (within drums) |
+| SELECT | Select synth track | Select drum track | Select drum track and focus that sound lane |
+| REC | Arm synth track | Arm drum track | Arm drum track; focus sound lane (not four independent recorders) |
+
+Transport PLAY, STOP and REC map to SLOOP's normal transport,
+and BANK left/right may move the focused strip/lane. Knobs 1-4
+will edit the currently focused SLOOP parameters; knobs 5-8
+will use the existing MIDI Learn support once integrated.
+Unused buttons (rewind, fast-forward, arrow controls) remain unbound.
+
+Hortator's LED note layout is implemented independently in
+`firmware/src/smcbt_leds.h` (35 status notes: REC/SOLO/MUTE/SELECT
+per strip, plus STOP/PLAY/REC). It only sends changes and resends all
+states after a new connection. The transport adapter must confirm
+a message was queued before marking it sent.
+
+**Drum solo policy:** an individual lane solo must affect other
+drum lanes without accidentally muting all synth tracks. Define
+the precedence of the drum bus mute/solo and per-lane mute/solo
+in the dedicated mixer bridge and make project restore safe.
+No drum mixing implementation or persistent lane levels exist yet.
+
+**Important:** Even though `smcbt_midi` decodes all eight
+button columns, its event's `track` field represents the *physical
+strip*, not an index into `trk[]`. The integration bridge must
+translate strips >=4 into drum-lane targets and not dereference
+`trk[4]` or beyond.
