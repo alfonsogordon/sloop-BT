@@ -259,6 +259,9 @@ UI_SMALL static void fm1_main(void)
     healthy_since = fm1_ms;
     for (;;) {
         uint32_t m = fm1_ms;
+#if defined(SLOOP_BT_OPEN_MEASURE) && SLOOP_BT_OPEN_MEASURE
+        sloop_bt_open_measure_tick(); /* fake radio; nonflashable diagnostic only */
+#endif
         fm1_wdt_feed();
         usb_retry(fm1_ms);
         if ((uint32_t)(m - healthy_since) >= 30000u && bootguard.pending) {
