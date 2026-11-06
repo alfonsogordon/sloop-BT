@@ -20,6 +20,9 @@ The lab route uses SLOOP's known updater protocol
 2. A **read-only Web MIDI identity probe** must find a running
    `FM-1_9xx` device; stock, foreign or OTA-loader identities are
    blocked. The page will not blindly resume an interrupted write.
+   The FM1's Web MIDI input/output port IDs and reported firmware
+   identity are rechecked immediately before flashing: swapping or
+   reconnecting a different device forces a new preflight.
 3. The user must confirm verified SWD recovery and backups,
    accept unverified Bluetooth RF risk, approve a confirmation dialog,
    and type **FLASH UNTESTED** before a write command is dispatched.
