@@ -33,7 +33,7 @@ footer{font-size:13px;color:var(--muted);padding-top:25px;border-top:1px solid v
 <main>
 <div class="top"><div class="logo">SLOOP<span>–BT</span></div><span class="tag">UNTESTED lab firmware · SWD recovery required</span></div>
 <h1>SLOOP-BT FM1 Lab Web Flasher</h1>
-<p>Install a <strong>verified SLOOP-family</strong> firmware package from your own computer, directly over USB-MIDI in Chrome or Edge. This page uses SLOOP's existing updater protocol.</p>
+<p>Automatically verify the pinned SLOOP-BT test firmware, then check your connected FM1 over USB-MIDI in Chrome or Edge. Read-only preflight supports both <strong>Optimist</strong> and <strong>SLOOP</strong>. This prototype remains unverified on actual FM1 Bluetooth hardware.</p>
 <div class="grid">
 <section class="card"><h2>Current stable SLOOP</h2><p>Use the original author's installer for normal, released SLOOP firmware.</p><a class="action" href="https://isod89.github.io/sloop-fm1/" target="_blank" rel="noopener">Open original SLOOP installer</a></section>
 <section class="card"><h2>Optimist BLE hardware test</h2><p>The firmware compiles, but RF calibration, BLE pairing and audio stability have NOT been physically verified. Do not flash without tested SWD recovery.</p><a class="action" href="https://github.com/alfonsogordon/sloop-BT/pull/1" target="_blank" rel="noopener">View development progress</a></section>
@@ -54,7 +54,7 @@ footer{font-size:13px;color:var(--muted);padding-top:25px;border-top:1px solid v
 </section>
 </div>
 <footer>
-<p><strong>Requirements:</strong> Chrome or Edge on a desktop OS with Web MIDI SysEx permission and a connected M-VAVE FM1. This lab page refuses to flash if the FM1 is already in OTA-loader mode; use the stable SLOOP installer for recovery. Unsupported or foreign firmware identities are rejected.</p>
+<p><strong>Requirements:</strong> Chrome or Edge on a desktop OS with Web MIDI SysEx permission and a connected M-VAVE FM1 (Optimist or SLOOP). This lab page refuses to flash if the FM1 is already in OTA-loader mode; use the stable SLOOP installer for recovery. Unsupported or foreign firmware identities are rejected.</p>
 <p><a href="https://github.com/alfonsogordon/sloop-BT">SLOOP-BT source</a> · <a href="https://github.com/DeadActive/hortator">Hortator BLE reference</a> · <a href="https://isod89.github.io/sloop-fm1/webapp/editor/">SLOOP web editor / backup</a></p>
 <p>SLOOP-BT is independent, GPL-3.0-only, without warranty. M-VAVE and FM1 are trademarks of their owners.</p>
 </footer>
