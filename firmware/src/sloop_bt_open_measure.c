@@ -31,6 +31,9 @@
 #endif
 #include "sloop_bt_midi_ring.h"
 static sloop_bt_midi_ring_t sloop_bt_open_rx;
+#if SLOOP_BT_RADIO_MEASURE
+#include "sloop_bt_open_runtime.c"
+#endif
 
 /* Strict IRQ-to-main bridge will replace these once the hardware port
  * exists. The radio stub produces no interrupts or real MIDI.
@@ -147,8 +150,19 @@ static void sloop_bt_open_measure_tick(void)
     if(!ran) {
         ran=1;
         sloop_bt_midi_ring_reset(&sloop_bt_open_rx);
+#if SLOOP_BT_RADIO_MEASURE
+        /* Real-radio diagnostic: never start radio on boot. A user action
+         * in the guarded menu must explicitly request power-on.
+         * Take a volatile function address to retain probe code.
+         */
+        sloop_bt_open_measure_sink=(int)((uintptr_t)&sloop_bt_open_probe & 1u);
+#else
         sloop_bt_open_measure_sink=sloop_bt_open_probe();
+#endif
     }
+#if SLOOP_BT_RADIO_MEASURE
+    sloop_bt_hw_poll(fm1_ms);
+#endif
     if(sloop_bt_open_state_dirty) {
         sloop_bt_open_state_dirty=0;
         if(ble_midi_ready()) {
