@@ -61,35 +61,46 @@ footer{font-size:13px;color:var(--muted);padding-top:25px;border-top:1px solid v
 import { productOf, logicalImage, sha256hex } from './fm1pkg.js';
 import { Updater } from './fm1ota.js';
 const el = id => document.getElementById(id);
+const LAB_SHA = '6c2c201cec9a3cc63e35ab71c235ec4e833af180835be062557e81d3e5b18d22';
+const LAB_FILE = 'sloop-bt-optimist-lab-UNTESTED.fwsc';
+const LAB_SIZE = 610076;
+let preflightOK = false;
 let selected = null;
 let busy = false;
 function say(s) { el('status').textContent = s; }
 function log(s) { el('log').textContent += String(s) + '\n'; }
-function enable() { el('install').disabled = busy || !selected || !el('confirm').checked || !navigator.requestMIDIAccess; }
-function clear() { if(busy)return; selected=null; el('pkg').value=''; el('confirm').checked=false; el('details').textContent='No firmware selected.'; el('progress').value=0; say('Select a package to begin.'); enable(); }
+function enable() {
+  const ready = !!navigator.requestMIDIAccess && window.isSecureContext;
+  el('preflight').disabled = busy || !selected || !ready;
+  el('install').disabled = busy || !selected || !ready || !preflightOK || !el('confirm').checked || !el('rfRisk').checked;
+}
+function clear() { if(busy)return; selected=null; preflightOK=false; el('pkg').value=''; el('confirm').checked=false; el('rfRisk').checked=false; el('details').textContent='No firmware selected.'; el('progress').value=0; say('Select a package to begin.'); enable(); }
 el('reset').addEventListener('click', clear);
 el('confirm').addEventListener('change', enable);
+el('rfRisk').addEventListener('change', enable);
 el('pkg').addEventListener('change', async () => {
-  selected=null; enable();
+  selected=null; preflightOK=false; enable();
   const file=el('pkg').files?.[0];
   if(!file){clear();return;}
   try {
-    if(!/\.fwsc$/i.test(file.name))throw new Error('Choose a .fwsc package');
+    if(file.name!==LAB_FILE)throw new Error('Expected pinned lab filename: '+LAB_FILE);
     const bytes = new Uint8Array(await file.arrayBuffer());
-    if (bytes.length < 1024 || bytes.length > 3_000_000) throw new Error('Unexpected package size');
+    if(bytes.length!==LAB_SIZE)throw new Error('Wrong lab package size: '+bytes.length);
     const product=productOf(bytes);
-    if (!/^FM-1_9\d\d$/.test(product)) throw new Error('Not a SLOOP/Felucca-family FM1 package: ' + product);
+    if(product!=='FM-1_900')throw new Error('Wrong product: '+product);
     const hash=await sha256hex(bytes);
+    if(hash!==LAB_SHA)throw new Error('SHA-256 not on the reviewed lab-build allowlist. Refusing firmware.');
     selected={name:file.name,product,hash,image:logicalImage(bytes)};
     el('details').textContent=file.name+'\nProduct: '+product+'\nSHA-256: '+hash+'\nSize: '+bytes.length.toLocaleString()+' bytes';
-    say('Package loaded. Verify its origin, confirm backup and click Install firmware.');
+    say('Exact test-build checksum verified. Next use the read-only FM1 identity check.');
   } catch(e) { el('details').textContent='Rejected: '+e.message; say('Invalid or unsupported package.'); }
   enable();
 });
 window.addEventListener('beforeunload', e => { if(busy){e.preventDefault();e.returnValue='Firmware update in progress';} });
 el('install').addEventListener('click', async () => {
-  if(busy || !selected || !el('confirm').checked)return;
-  if(!window.confirm('Flash '+selected.name+' ('+selected.product+') to the FM1? Do not disconnect the USB cable.'))return;
+  if(busy || !selected || !preflightOK || !el('confirm').checked || !el('rfRisk').checked)return;
+  if(!window.confirm('UNTESTED FM1 BLUETOOTH: this could require SWD recovery. Continue?'))return;
+  if(window.prompt('Type FLASH UNTESTED to accept the hardware risk:')!=='FLASH UNTESTED')return;
   busy=true;enable();el('progress').value=0;el('log').textContent='';
   const pkg=selected;
   try {
@@ -101,11 +112,11 @@ el('install').addEventListener('click', async () => {
       else if(k==='write')el('progress').value=Math.min(99,20+80*(n||0)/1179);
       else if(k==='done')el('progress').value=100;};
     const ota=await updater.find(id=>/^ota-/i.test(id.model),true);
-    if(ota){ota.link.close();const ok=await updater.resume(pkg.image,step);if(!ok)throw new Error('Update interrupted; reconnect and retry');}
-    else await updater.install(pkg.image,pkg.product,step);
+    if(ota){ota.link.close();throw new Error('FM1 is already in update mode. Lab flasher refuses automatic resume; restore stable firmware first.');}
+    await updater.install(pkg.image,pkg.product,step);
     say('Installation completed. Reconnect USB if the FM1 does not reappear.');
   } catch(e){say('Update failed: '+(e.detail||e.message||e));log(e.stack||String(e));}
-  finally{busy=false;enable();}
+  finally{busy=false;preflightOK=false;enable();}
 });
 if(!navigator.requestMIDIAccess) say('Web MIDI is unavailable here. Use Chrome or Edge in a secure context (HTTPS).');
 </script>
