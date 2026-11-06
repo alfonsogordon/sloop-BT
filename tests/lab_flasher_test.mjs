@@ -24,6 +24,7 @@ class Updater{
     if(!filter(id))return null;
     return {id,link:{input:{id:port},output:{id:port+'-OUT'},close(){}}};
   }
+  seen(){return '(MIDI: Optimist USB MIDI, FM1-1A2B)';}
   async install(){flashCount++;}
 }
 const context={document:{getElementById:el},window:{isSecureContext:true,confirm:()=>confirm,prompt:()=>prompt,addEventListener:()=>{}},
@@ -53,8 +54,12 @@ loader=true;await el('preflight').dispatch('click');
 check(el('install').disabled,'OTA loader already active: blocked');
 loader=false;found='FM-1_015';await el('preflight').dispatch('click');
 check(el('install').disabled,'foreign or stock firmware identity rejected');
+found='FM-1_700';await el('preflight').dispatch('click');
+check(!el('install').disabled,'running Optimist FM-1_700 passes read-only FM1 identity check');
+found='FM-1_7900';await el('preflight').dispatch('click');
+check(!el('install').disabled,'running Optimist extended release identity passes preflight');
 found='FM-1_900';await el('preflight').dispatch('click');
-check(!el('install').disabled,'correct FM1 identity and checks unlock install');
+check(!el('install').disabled,'correct SLOOP FM1 identity and checks unlock install');
 await el('install').dispatch('click');
 check(flashCount===0,'cancelled browser confirmation never flashes');
 confirm=true;prompt='NO';await el('install').dispatch('click');
