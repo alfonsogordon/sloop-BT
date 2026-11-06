@@ -75,6 +75,10 @@
 #include "icons.c"           /* parameter icons (FELUCCA_ICONS), used by ui_draw.c */
 #include "ui_draw.c"
 #include "ui_vis.c"           /* the full-screen visualiser (HOME on HOME, 2.4) */
+#if SLOOP_BT_CONTROL
+#include "sloop_bt_link.h"
+static sloop_bt_link_t sloop_bt_link; /* no radio driver yet; safe OFF state */
+#endif
 #include "ui_layers.c"       /* hold a function button: what the keys and knobs do (TE style) */
 #include "ui_menu.c"
 #include "ui_input.c"
