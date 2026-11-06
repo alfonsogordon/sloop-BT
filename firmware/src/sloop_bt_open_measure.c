@@ -84,6 +84,10 @@ static volatile int sloop_bt_open_measure_sink;
  */
 static void (* volatile measured_irq_rx)(void)=ble_wl82_rx_irq;
 static void (* volatile measured_irq_evt)(void)=ble_wl82_event_irq;
+/* The upstream radio application calls this explicitly before
+ * enabling BLE. Include full RF startup and its calibration tables
+ * in the measured image even though the probe must not execute it. */
+static void (* volatile measured_rf_start)(const struct ble_rf_trims *)=ble_hw_wl82_start;
 #endif
 static __attribute__((noinline,used)) int sloop_bt_open_probe(void)
 {
@@ -103,7 +107,8 @@ static __attribute__((noinline,used)) int sloop_bt_open_probe(void)
      * DO NOT execute handlers without a real radio interrupt.
      */
     sloop_bt_open_measure_sink += (int)((uintptr_t)measured_irq_rx & 1u)
-                                + (int)((uintptr_t)measured_irq_evt & 1u);
+                                + (int)((uintptr_t)measured_irq_evt & 1u)
+                                + (int)((uintptr_t)measured_rf_start & 1u);
 #endif
     n=sloop_bt_led_packet(0u,packet,&index);
     if(n) {
