@@ -15,6 +15,7 @@ on:
       - firmware/src/sloop_bt_ble/ble_scan.c
       - firmware/src/sloop_bt_ble/ble_scan.h
       - firmware/src/sloop_bt_link.h
+      - firmware/src/sloop_bt_midi_ring.h
       - firmware/src/drums.c
       - tests/smcbt_test.c
       - tests/smcbt_leds_test.c
@@ -24,6 +25,7 @@ on:
       - tests/sloop_bt_ble_midi_test.c
       - tests/sloop_bt_ble_scan_test.c
       - tests/sloop_bt_link_test.c
+      - tests/sloop_bt_midi_ring_test.c
       - .github/workflows/smcbt-tests.yml
 jobs:
   smcbt:
@@ -58,6 +60,10 @@ jobs:
         run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_link_test.c -o /tmp/sloop_bt_link_test
       - name: Check scan, device list, connection and reconnect pacing
         run: /tmp/sloop_bt_link_test
+      - name: Compile and exercise interrupt-to-main MIDI ring
+        run: |
+          cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_midi_ring_test.c -o /tmp/sloop_bt_midi_ring_test
+          /tmp/sloop_bt_midi_ring_test
       - name: Compile real BLE advertisement parser
         run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_ble_scan_test.c -o /tmp/sloop_bt_ble_scan_test
       - name: Exercise scan, SMC service UUID, RSSI ordering and malformed data
