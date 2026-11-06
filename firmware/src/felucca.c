@@ -74,7 +74,18 @@
 #include "ui_studio.c"
 #include "icons.c"           /* parameter icons (FELUCCA_ICONS), used by ui_draw.c */
 #include "ui_draw.c"
+#ifndef SLOOP_BT_VISUALIZER
+#define SLOOP_BT_VISUALIZER 1 /* experimental lean firmware may omit visual-only DSP */
+#endif
+#if SLOOP_BT_VISUALIZER
 #include "ui_vis.c"           /* the full-screen visualiser (HOME on HOME, 2.4) */
+#else
+/* Keep the UI input and drawing contracts; disable visuals, not sound. */
+static int vis_shown(void) { return 0; }
+static void vis_open(void) { vis_on=0; }
+static void vis_draw(void) {}
+static void vis_select(int32_t s) { (void)s; }
+#endif
 #if SLOOP_BT_CONTROL
 #include "sloop_bt_link.h"
 static sloop_bt_link_t sloop_bt_link; /* no radio driver yet; safe OFF state */
