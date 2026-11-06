@@ -179,6 +179,10 @@ def build_loader():
 
 def build_app():
     flags = [*CFLAGS, "-Ifirmware/hal", "-Ifirmware/src", "-Ibuild/gen"]
+    if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1" and os.environ.get("SLOOP_BT_SIZE_OPT") == "1":
+        # Experimental ONLY: -Oz may raise DSP CPU load. Do not use in a
+        # flashable/release build before audio hashes and timings pass.
+        flags = ["-Oz" if flag == "-Os" else flag for flag in flags]
     if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1":
         flags.append("-Ithird_party/optimist_ble/hal")
     for flag in ("FELUCCA_FLASH", "FELUCCA_OTA", "FELUCCA_OTA_DRYRUN", "FELUCCA_CDC", "FELUCCA_UART",
