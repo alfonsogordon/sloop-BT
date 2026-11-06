@@ -78,7 +78,12 @@ function level(i,n,external=false){n=Math.max(0,Math.min(127,n|0));if(external){
   if(!f.picked){if(!cross&&(n+2<at||n>at+2)){note('FADER '+(i+1)+' waiting for pickup at '+at+' (received '+n+')');return}f.picked=true;note('FADER '+(i+1)+' PICKED UP');}
 }
   if(state.level[i]!==n){state.level[i]=n;note('LEVEL '+name(i)+' = '+n)}
-  render();
+  const strip=$('mixer').children[i];
+  if(strip){
+    strip.querySelector('.num').textContent=String(n);
+    const slider=strip.querySelector('input[type=range]');
+    if(slider && slider.value!==String(n))slider.value=String(n);
+  }
 }
 function reassigned(i,l){state.lanes[i-4]=+l;previewFaders[i].picked=false;previewFaders[i].seen=false;note('DRUM STRIP '+(i+1)+' → '+name(i));render()}
 function render(){
@@ -91,7 +96,7 @@ function render(){
     const v=document.createElement('div');v.className='num';v.textContent=state.level[i].toString();
     d.append(n,title,slider,v);
     if(i>=4){const sel=document.createElement('select');sel.setAttribute('aria-label','Drum assignment for strip '+(i+1));LANE_NAMES.forEach((x,l)=>{const o=document.createElement('option');o.value=l;o.textContent=x;sel.append(o)});sel.value=state.lanes[i-4];sel.addEventListener('change',()=>reassigned(i,sel.value));d.append(sel)}
-    for(const k of ['mute','solo','rec','select']){const b=document.createElement('button');b.className=(k==='select'?'sel':k)+(k==='select'?state.selected===i?' active':'':state[k][i]?' active':'');b.textContent=k.toUpperCase();b.addEventListener('click',()=>button(i,k));d.append(b)}
+    for(const k of ['mute','solo','rec','select']){const b=document.createElement('button');b.className=(k==='select'?'sel':k)+(k==='select'?state.selected===i?' active':'':(k==='rec'&&i>=4?state.rec[3]:state[k][i])?' active':'');b.textContent=k.toUpperCase();b.addEventListener('click',()=>button(i,k));d.append(b)}
     mixer.append(d);
   }
   $('play').classList.toggle('playing',state.playing);
