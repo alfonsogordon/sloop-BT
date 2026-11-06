@@ -54,6 +54,6 @@ check(flashCount===0,'incorrect typed risk confirmation never flashes');
 prompt='FLASH UNTESTED';
 port='FM1-PORT-B';await el('install').dispatch('click');
 check(flashCount===0,'changed FM1 port after preflight blocks flashing');
-port='FM1-PORT-A';await el('install').dispatch('click');
+port='FM1-PORT-A';await el('preflight').dispatch('click');await el('install').dispatch('click');
 check(flashCount===1 && el('install').disabled,'only fully authorized test calls OTA, then relocks');
 console.log('SLOOP-BT lab flasher UI safety tests passed');
