@@ -20,6 +20,9 @@
 #define BLE_DEVICE_NAME "SLOOP-BT"
 #define BLE_NAME_HEX 0
 #define FELUCCA_BLE_STUB 1 /* fake radio; protocol footprint only */
+/* Legacy Hortator decoder shares a generic header guard with Optimist.
+ * Both codecs are standalone and use different type/function names. */
+#undef BLE_MIDI_H
 #include "../../third_party/optimist_ble/ble_stack.c"
 
 /* Strict IRQ-to-main bridge will replace these once the hardware port
