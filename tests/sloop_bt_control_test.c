@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "../firmware/src/sloop_bt_drums.h"
 #define NTRK 4u
 #define TRK_DRUM 3u
 #define P_LEVEL 0u
