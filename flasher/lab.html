@@ -122,12 +122,12 @@ el('preflight').addEventListener('click', async () => {
       throw new Error('FM1 already in OTA loader. Lab flasher refuses to resume or overwrite this state.');
     }
     const found=await updater.find(id=>!/^ota-/i.test(id.model));
-    if(!found)throw new Error('No running FM1 replied to read-only identity query.');
+    if(!found)throw new Error('No FM1 answered the read-only identity query. '+updater.seen()+'; close other MIDI apps and check USB-MIDI SysEx permission.');
     const identity=found.id.text;
     const input=found.link.input?.id, output=found.link.output?.id;
     found.link.close();
-    if(!/^FM-1_9[0-9][0-9]$/.test(identity))
-      throw new Error('Unsupported current firmware: '+identity+'. SLOOP family required.');
+    if(!/^FM-1_(?:9[0-9]{2}|7[0-9]{2,7})$/.test(identity))
+      throw new Error('Unsupported running firmware: '+identity+'. Expecting SLOOP FM-1_9xx or Optimist FM-1_7xx (or its longer release ID).');
     if(!input || !output)
       throw new Error('Cannot verify a stable FM1 USB-MIDI input/output port pair.');
     preflightPort={input,output,identity};
