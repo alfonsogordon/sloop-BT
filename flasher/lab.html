@@ -68,6 +68,7 @@ const LAB_SHA = '96b192869ca45abdcb364ca1f6fbaf89819776553a0df2b330a5c238f6fe2ab
 const LAB_FILE = 'sloop-bt-optimist-lab-UNTESTED.fwsc';
 const LAB_SIZE = 610076;
 let preflightOK = false;
+let preflightPort = null;
 let selected = null;
 let busy = false;
 function say(s) { el('status').textContent = s; }
@@ -77,12 +78,12 @@ function enable() {
   el('preflight').disabled = busy || !selected || !ready;
   el('install').disabled = busy || !selected || !ready || !preflightOK || !el('confirm').checked || !el('rfRisk').checked;
 }
-function clear() { if(busy)return; selected=null; preflightOK=false; el('pkg').value=''; el('confirm').checked=false; el('rfRisk').checked=false; el('details').textContent='No firmware selected.'; el('progress').value=0; say('Select a package to begin.'); enable(); }
+function clear() { if(busy)return; selected=null; preflightOK=false; preflightPort=null; el('pkg').value=''; el('confirm').checked=false; el('rfRisk').checked=false; el('details').textContent='No firmware selected.'; el('progress').value=0; say('Select a package to begin.'); enable(); }
 el('reset').addEventListener('click', clear);
 el('confirm').addEventListener('change', enable);
 el('rfRisk').addEventListener('change', enable);
 el('pkg').addEventListener('change', async () => {
-  selected=null; preflightOK=false; enable();
+  selected=null; preflightOK=false; preflightPort=null; enable();
   const file=el('pkg').files?.[0];
   if(!file){clear();return;}
   try {
@@ -101,7 +102,7 @@ el('pkg').addEventListener('change', async () => {
 });
 el('preflight').addEventListener('click', async () => {
   if(busy || !selected)return;
-  busy=true; preflightOK=false; enable();
+  busy=true; preflightOK=false; preflightPort=null; enable();
   try {
     const midi=await navigator.requestMIDIAccess({sysex:true});
     const updater=new Updater(midi,log);
@@ -113,9 +114,13 @@ el('preflight').addEventListener('click', async () => {
     const found=await updater.find(id=>!/^ota-/i.test(id.model));
     if(!found)throw new Error('No running FM1 replied to read-only identity query.');
     const identity=found.id.text;
+    const input=found.link.input?.id, output=found.link.output?.id;
     found.link.close();
     if(!/^FM-1_9[0-9][0-9]$/.test(identity))
       throw new Error('Unsupported current firmware: '+identity+'. SLOOP family required.');
+    if(!input || !output)
+      throw new Error('Cannot verify a stable FM1 USB-MIDI input/output port pair.');
+    preflightPort={input,output,identity};
     preflightOK=true;
     say('Read-only FM1 identity check passed ('+identity+'). Flash still requires recovery confirmations.');
     log('Preflight identity: '+identity);
@@ -141,10 +146,17 @@ el('install').addEventListener('click', async () => {
       else if(k==='done')el('progress').value=100;};
     const ota=await updater.find(id=>/^ota-/i.test(id.model),true);
     if(ota){ota.link.close();throw new Error('FM1 is already in update mode. Lab flasher refuses automatic resume; restore stable firmware first.');}
+    const device=await updater.find(id=>!/^ota-/i.test(id.model));
+    if(!device)throw new Error('FM1 disappeared since read-only preflight. Refusing flash.');
+    const live={input:device.link.input?.id,output:device.link.output?.id,identity:device.id.text};
+    device.link.close();
+    if(!preflightPort || live.input!==preflightPort.input ||
+       live.output!==preflightPort.output || live.identity!==preflightPort.identity)
+      throw new Error('FM1 USB-MIDI port or identity changed after preflight. Refusing flash.');
     await updater.install(pkg.image,pkg.product,step);
     say('Installation completed. Reconnect USB if the FM1 does not reappear.');
   } catch(e){say('Update failed: '+(e.detail||e.message||e));log(e.stack||String(e));}
-  finally{busy=false;preflightOK=false;enable();}
+  finally{busy=false;preflightOK=false;preflightPort=null;enable();}
 });
 if(!navigator.requestMIDIAccess) say('Web MIDI is unavailable here. Use Chrome or Edge in a secure context (HTTPS).');
 </script>
