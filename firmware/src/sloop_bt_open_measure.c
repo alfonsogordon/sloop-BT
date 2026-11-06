@@ -54,6 +54,18 @@ BLE_API void ble_app_state(void){sloop_bt_open_state_dirty=1;}
  * paths for measurement, but never call this from the product build.
  * The blob is internal to the measurement build and not released.
  */
+/* Volatile function pointers prevent whole-program optimisation of the
+ * fake-radio probes into empty operations. A real BLE link may invoke
+ * these paths asynchronously; the fake baseband cannot model that.
+ */
+static void (* volatile measured_init)(const uint8_t *,uint8_t)=ble_init;
+static void (* volatile measured_enable)(int)=ble_enable;
+static void (* volatile measured_scan)(int)=ble_ll_scan;
+static int (* volatile measured_connect)(const struct ble_peer *)=ble_central_connect;
+static void (* volatile measured_cancel)(void)=ble_central_cancel;
+static int (* volatile measured_ready)(void)=ble_midi_ready;
+static uint8_t (* volatile measured_state)(void)=ble_central_state;
+static uint8_t (* volatile measured_fail)(void)=ble_central_fail;
 static __attribute__((noinline,used)) int sloop_bt_open_probe(void)
 {
     static const uint8_t addr[6]={0x12,0x34,0x56,0x78,0x9a,0xc0};
@@ -62,19 +74,19 @@ static __attribute__((noinline,used)) int sloop_bt_open_probe(void)
     uint8_t packet[8];
     unsigned index=0;
     uint32_t n;
-    ble_init(addr,1);
-    ble_enable(1);
-    ble_ll_scan(1);
+    measured_init(addr,1);
+    measured_enable(1);
+    measured_scan(1);
     peer.addr_rand=1;
-    if(ble_central_connect(&peer))ble_central_cancel();
+    if(measured_connect(&peer))measured_cancel();
     n=sloop_bt_led_packet(0u,packet,&index);
     if(n) {
         sloop_bt_open_out_pkt=0x0990007fu;
         sloop_bt_open_out_time=0u;
         sloop_bt_open_out_pending=1;
-        return (int)n+(int)ble_central_state()+(int)ble_midi_ready();
+        return (int)n+(int)measured_state()+(int)measured_ready();
     }
-    return (int)ble_connected()+(int)ble_central_fail();
+    return (int)ble_connected()+(int)measured_fail();
 }
 #endif
 
