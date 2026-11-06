@@ -31,9 +31,52 @@ jobs:
           - variant: baseline
             bt_control: "0"
             bt_drum_mix: "0"
+            uac: "1"
+            icons: "1"
+            logo: "0"
+            uart: "1"
           - variant: controller-no-radio
             bt_control: "1"
             bt_drum_mix: "1"
+            uac: "1"
+            icons: "1"
+            logo: "0"
+            uart: "1"
+          - variant: no-usb-audio
+            bt_control: "1"
+            bt_drum_mix: "1"
+            uac: "0"
+            icons: "1"
+            logo: "0"
+            uart: "1"
+          - variant: no-icons
+            bt_control: "1"
+            bt_drum_mix: "1"
+            uac: "1"
+            icons: "0"
+            logo: "0"
+            uart: "1"
+          - variant: text-logo
+            bt_control: "1"
+            bt_drum_mix: "1"
+            uac: "1"
+            icons: "1"
+            logo: "1"
+            uart: "1"
+          - variant: no-trs-midi
+            bt_control: "1"
+            bt_drum_mix: "1"
+            uac: "1"
+            icons: "1"
+            logo: "0"
+            uart: "0"
+          - variant: lean-combined
+            bt_control: "1"
+            bt_drum_mix: "1"
+            uac: "0"
+            icons: "0"
+            logo: "1"
+            uart: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Install build prerequisites
@@ -52,7 +95,12 @@ jobs:
         env:
           SLOOP_BT_CONTROL: ${{ matrix.bt_control }}
           SLOOP_BT_DRUM_MIX: ${{ matrix.bt_drum_mix }}
+          FELUCCA_UAC: ${{ matrix.uac }}
+          FELUCCA_ICONS: ${{ matrix.icons }}
+          FELUCCA_LOGO_TEXT: ${{ matrix.logo }}
+          FELUCCA_UART: ${{ matrix.uart }}
         run: |
+          set -o pipefail
           sh build.sh 2>&1 | tee "build-${{ matrix.variant }}.log"
           test -s build/felucca.bin
           test -s build/felucca.fwsc
