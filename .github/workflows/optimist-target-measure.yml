@@ -1,0 +1,52 @@
+name: Measure Optimist BLE protocol on FM1 (never flash)
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - third_party/optimist_ble/**
+      - firmware/src/sloop_bt_open_measure.c
+      - firmware/src/felucca.c
+      - tools/build.py
+      - .github/workflows/optimist-target-measure.yml
+permissions:
+  contents: read
+jobs:
+  protocol-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-pil git curl xz-utils
+          sh tools/get_toolchain.sh "$HOME/.jieli"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK"
+      - name: Compile real Optimist central protocol, fake radio, diagnostic linker only
+        env:
+          SLOOP_BT_OPEN_MEASURE: "1"
+          SLOOP_BT_CONTROL: "1"
+          SLOOP_BT_DRUM_MIX: "1"
+          SLOOP_BT_VISUALIZER: "0"
+          FELUCCA_UAC: "0"
+          FELUCCA_ICONS: "0"
+          FELUCCA_LOGO_TEXT: "1"
+          FELUCCA_UART: "1"
+        run: |
+          set -o pipefail
+          sh build.sh 2>&1 | tee measurement.log
+          grep -q "OPEN-STACK PROTOCOL MEASUREMENT ONLY" measurement.log
+          grep -q "NO INSTALLABLE FIRMWARE" measurement.log
+          test ! -e build/felucca.fwsc
+          test ! -e build/felucca.bin
+          python3 tools/bt_size_report.py > symbols.txt
+      - name: Upload nonflashable measurement logs only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: optimist-open-protocol-size
+          path: |
+            measurement.log
+            symbols.txt
+          if-no-files-found: ignore
