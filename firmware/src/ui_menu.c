@@ -102,14 +102,7 @@ UI_SMALL static const char *mi_value(uint32_t i, uint16_t *c)
             return sloop_bt_link.devices[sloop_bt_link.selected].name;
         return "NONE";
     case MI_BT_RECONNECT: return sloop_bt_link.auto_reconnect ? "ON" : "OFF";
-    case MI_BT_STATUS:
-#if defined(SLOOP_BT_OPEN_MEASURE) && SLOOP_BT_OPEN_MEASURE && defined(SLOOP_BT_RADIO_MEASURE) && SLOOP_BT_RADIO_MEASURE
-        if(sloop_bt_link.state==SLOOP_BT_ERROR &&
-           ble_central_fail()==BLE_CF_NEED_PAIR)return "PAIR REQUIRED";
-        if(sloop_bt_link.state==SLOOP_BT_ERROR &&
-           ble_central_fail()==BLE_CF_NO_MIDI)return "NOT BLE MIDI";
-#endif
-        return sloop_bt_link_status(&sloop_bt_link);
+    case MI_BT_STATUS: return sloop_bt_link_status(&sloop_bt_link);
     case MI_BT_LANE_A: case MI_BT_LANE_B: case MI_BT_LANE_C: case MI_BT_LANE_D: {
         uint32_t k=i-MI_BT_LANE_A, lane=sloop_bt_mix.assignment[k];
         return lane<DRUM_LANES ? LANE_NAME[lane] : "UNKNOWN";
