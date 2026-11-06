@@ -19,6 +19,15 @@
 #include "gfx.c"
 #include "core.h"
 #include "cpu1.h"           /* the second core's job API (defined in cpu1.c; the host tests have their own) */
+#ifndef SLOOP_BT_CONTROL
+#define SLOOP_BT_CONTROL 0 /* experimental SMC hardware control bridge */
+#endif
+#ifndef SLOOP_BT_DRUM_MIX
+#define SLOOP_BT_DRUM_MIX 0 /* independent drum lane DSP, disabled in standard build */
+#endif
+#if SLOOP_BT_CONTROL && !SLOOP_BT_DRUM_MIX
+#error "SLOOP_BT_CONTROL requires SLOOP_BT_DRUM_MIX=1 (drum-lane state)"
+#endif
 #include "engines.c"
 #include "drums.c"
 #include "params.c"
@@ -69,6 +78,9 @@
 #include "ui_layers.c"       /* hold a function button: what the keys and knobs do (TE style) */
 #include "ui_menu.c"
 #include "ui_input.c"
+#if SLOOP_BT_CONTROL
+#include "sloop_bt_control.c" /* main-loop SMC adapter; no BLE stack yet */
+#endif
 #ifndef FELUCCA_FLASH
 #define FELUCCA_FLASH 1          /* flash driver + storage.c */
 #endif
