@@ -5,6 +5,7 @@
 #ifndef SLOOP_BT_MIDI_RING_H
 #define SLOOP_BT_MIDI_RING_H
 #include <stdint.h>
+#include "../hal/fm1_bt_barrier.h"
 #define SLOOP_BT_MIDI_Q_SIZE 64u
 typedef struct {
     volatile uint32_t head, tail, dropped;
@@ -25,7 +26,7 @@ static inline int sloop_bt_midi_ring_push(sloop_bt_midi_ring_t *q,uint32_t pkt)
         return 0;
     }
     q->packets[h & (SLOOP_BT_MIDI_Q_SIZE-1u)]=pkt;
-    __asm__ __volatile__("" ::: "memory");
+    SLOOP_BT_COMPILER_BARRIER();
     q->head=h+1u;
     return 1;
 }
@@ -34,7 +35,7 @@ static inline int sloop_bt_midi_ring_pop(sloop_bt_midi_ring_t *q,uint32_t *pkt)
 {
     uint32_t t=q->tail;
     if(t==q->head)return 0;
-    __asm__ __volatile__("" ::: "memory");
+    SLOOP_BT_COMPILER_BARRIER();
     *pkt=q->packets[t & (SLOOP_BT_MIDI_Q_SIZE-1u)];
     q->tail=t+1u;
     return 1;
