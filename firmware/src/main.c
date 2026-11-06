@@ -348,6 +348,10 @@ UI_SMALL static void fm1_main(void)
         felucca_dbg.page = ui.page;
         felucca_dbg.home = ui.home;
         felucca_dbg.stage = 1;
+#if SLOOP_BT_CONTROL
+        if (sloop_bt_connected)
+            sloop_bt_control_sync_levels(); /* pick-up after FM1-side level changes */
+#endif
         ui_input();
         felucca_dbg.stage = 2;
         ui_leds();
