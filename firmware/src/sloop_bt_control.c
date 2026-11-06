@@ -184,3 +184,31 @@ static void sloop_bt_control_led_status(smcbt_led_status_t *out)
     out->playing=song.playing!=0;
     out->recording=song.rec!=0;
 }
+
+/* Encode ONE pending LED update as a standards-compliant BLE-MIDI
+ * notification payload. A radio sender may queue it when connected;
+ * crucially, do NOT mark it delivered unless the queue accepted it.
+ * This is main-loop code only, never called by the audio interrupt.
+ */
+static uint32_t sloop_bt_led_packet(uint32_t timestamp_ms,uint8_t out[8],unsigned *index)
+{
+    smcbt_led_status_t status;
+    smcbt_led_msg_t msg;
+    uint8_t midi[1][3], lengths[1]={3};
+    uint32_t taken;
+    if(!sloop_bt_connected)return 0;
+    sloop_bt_control_led_status(&status);
+    if(!smcbt_led_next(&sloop_bt_leds,&status,&msg,index))return 0;
+    midi[0][0]=msg.status;
+    midi[0][1]=msg.note;
+    midi[0][2]=msg.velocity;
+    return ble_midi_pack(midi,lengths,1,timestamp_ms,out,8u,&taken);
+}
+static void sloop_bt_led_queued(unsigned index,uint8_t on)
+{
+    smcbt_led_msg_t msg;
+    msg.status=0x90u;
+    msg.note=smcbt_led_note(index);
+    msg.velocity=on?127u:0u;
+    smcbt_led_sent(&sloop_bt_leds,index,&msg);
+}
