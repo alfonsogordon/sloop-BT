@@ -355,6 +355,7 @@ def main():
         if a.release:
             raise SystemExit("LAB PACKAGE: official release identity forbidden")
         name = "sloop-bt-optimist-lab-UNTESTED.fwsc"
+        VERSION = "SLOOP-BT LAB"
         print("LAB PACKAGE REQUESTED: unverified FM1 radio; only for units with SWD recovery")
     if a.release:                   # one digit each: the identity has room for two
         m = re.fullmatch(r"(\d)\.(\d)(-[A-Za-z0-9]+)?", a.release)
