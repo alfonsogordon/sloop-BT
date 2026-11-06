@@ -75,6 +75,15 @@ static void (* volatile measured_cancel)(void)=ble_central_cancel;
 static int (* volatile measured_ready)(void)=ble_midi_ready;
 static uint8_t (* volatile measured_state)(void)=ble_central_state;
 static uint8_t (* volatile measured_fail)(void)=ble_central_fail;
+#if SLOOP_BT_RADIO_MEASURE
+/* These physical interrupt handlers are essential for RX, GATT,
+ * subscriptions and the MIDI path. Retain them even though SLOOP
+ * has not yet installed real IRQ hooks in the vector table.
+ * Their pointers enter the data image and prevent elimination.
+ */
+static void (* volatile measured_irq_rx)(void)=ble_wl82_rx_irq;
+static void (* volatile measured_irq_evt)(void)=ble_wl82_event_irq;
+#endif
 static __attribute__((noinline,used)) int sloop_bt_open_probe(void)
 {
     static const uint8_t addr[6]={0x12,0x34,0x56,0x78,0x9a,0xc0};
@@ -88,6 +97,13 @@ static __attribute__((noinline,used)) int sloop_bt_open_probe(void)
     measured_scan(1);
     peer.addr_rand=1;
     if(measured_connect(&peer))measured_cancel();
+#if SLOOP_BT_RADIO_MEASURE
+    /* Load volatile IRQ pointers to keep RX/event code reachable.
+     * DO NOT execute handlers without a real radio interrupt.
+     */
+    sloop_bt_open_measure_sink += (int)((uintptr_t)measured_irq_rx & 1u)
+                                + (int)((uintptr_t)measured_irq_evt & 1u);
+#endif
     n=sloop_bt_led_packet(0u,packet,&index);
     if(n) {
         sloop_bt_open_out_pkt=0x0990007fu;
