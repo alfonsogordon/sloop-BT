@@ -96,6 +96,31 @@ el('pkg').addEventListener('change', async () => {
   } catch(e) { el('details').textContent='Rejected: '+e.message; say('Invalid or unsupported package.'); }
   enable();
 });
+el('preflight').addEventListener('click', async () => {
+  if(busy || !selected)return;
+  busy=true; preflightOK=false; enable();
+  try {
+    const midi=await navigator.requestMIDIAccess({sysex:true});
+    const updater=new Updater(midi,log);
+    const loader=await updater.find(id=>/^ota-/i.test(id.model),true);
+    if(loader){
+      loader.link.close();
+      throw new Error('FM1 already in OTA loader. Lab flasher refuses to resume or overwrite this state.');
+    }
+    const found=await updater.find(id=>!/^ota-/i.test(id.model));
+    if(!found)throw new Error('No running FM1 replied to read-only identity query.');
+    const identity=found.id.text;
+    found.link.close();
+    if(!/^FM-1_9[0-9][0-9]$/.test(identity))
+      throw new Error('Unsupported current firmware: '+identity+'. SLOOP family required.');
+    preflightOK=true;
+    say('Read-only FM1 identity check passed ('+identity+'). Flash still requires recovery confirmations.');
+    log('Preflight identity: '+identity);
+  } catch(e){
+    say('Preflight BLOCKED: '+(e.message||e));
+    log(String(e));
+  } finally { busy=false; enable(); }
+});
 window.addEventListener('beforeunload', e => { if(busy){e.preventDefault();e.returnValue='Firmware update in progress';} });
 el('install').addEventListener('click', async () => {
   if(busy || !selected || !preflightOK || !el('confirm').checked || !el('rfRisk').checked)return;
