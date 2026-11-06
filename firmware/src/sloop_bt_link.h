@@ -15,6 +15,10 @@ enum sloop_bt_state {
     SLOOP_BT_CONNECTING, SLOOP_BT_CONNECTED,
     SLOOP_BT_LOST, SLOOP_BT_ERROR
 };
+enum sloop_bt_error {
+    SLOOP_BT_ERR_GENERIC, SLOOP_BT_ERR_PAIR_REQUIRED,
+    SLOOP_BT_ERR_NO_MIDI, SLOOP_BT_ERR_GATT, SLOOP_BT_ERR_LOST
+};
 enum sloop_bt_intent {
     SLOOP_BT_DO_NOTHING, SLOOP_BT_START_RADIO, SLOOP_BT_STOP_RADIO,
     SLOOP_BT_START_SCAN, SLOOP_BT_STOP_SCAN,
@@ -28,6 +32,7 @@ typedef struct {
 typedef struct {
     uint8_t state, enabled, auto_reconnect, pending;
     uint8_t count, selected, remembered, attempts;
+    uint8_t error;
     uint8_t target_addr[6], target_type;
     uint32_t due_ms;
     sloop_bt_device_t devices[SLOOP_BT_DEVICES];
@@ -62,6 +67,7 @@ static inline void sloop_bt_link_power(sloop_bt_link_t *m,int on)
         m->state=SLOOP_BT_IDLE;
         m->pending=SLOOP_BT_START_RADIO;
         m->attempts=0;
+        m->error=SLOOP_BT_ERR_GENERIC;
     } else {
         m->enabled=0;
         m->pending=SLOOP_BT_STOP_RADIO;
@@ -170,6 +176,15 @@ static inline const char *sloop_bt_link_status(const sloop_bt_link_t *m)
     static const char *const states[]={
         "OFF","READY","SCANNING","CONNECTING","CONNECTED","LOST","FAILED"
     };
+    if(m->state==SLOOP_BT_ERROR) {
+        switch(m->error) {
+        case SLOOP_BT_ERR_PAIR_REQUIRED: return "PAIR REQUIRED";
+        case SLOOP_BT_ERR_NO_MIDI: return "NOT BLE MIDI";
+        case SLOOP_BT_ERR_GATT: return "GATT FAILED";
+        case SLOOP_BT_ERR_LOST: return "LINK LOST";
+        default: break;
+        }
+    }
     return m->state<=SLOOP_BT_ERROR?states[m->state]:"FAILED";
 }
 #endif
