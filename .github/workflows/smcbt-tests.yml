@@ -10,12 +10,15 @@ on:
       - firmware/src/sloop_bt_drums.h
       - firmware/src/sloop_bt_dispatch.h
       - firmware/src/sloop_bt_control.c
+      - firmware/src/sloop_bt_ble/ble_midi.c
+      - firmware/src/sloop_bt_ble/ble_midi.h
       - firmware/src/drums.c
       - tests/smcbt_test.c
       - tests/smcbt_leds_test.c
       - tests/sloop_bt_drums_test.c
       - tests/sloop_bt_dispatch_test.c
       - tests/sloop_bt_control_test.c
+      - tests/sloop_bt_ble_midi_test.c
       - .github/workflows/smcbt-tests.yml
 jobs:
   smcbt:
@@ -42,3 +45,7 @@ jobs:
         run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_control_test.c -o /tmp/sloop_bt_control_test
       - name: Exercise actual SLOOP state mutations through SMC messages
         run: /tmp/sloop_bt_control_test
+      - name: Compile BLE-MIDI codec and SMC protocol integration test
+        run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_ble_midi_test.c firmware/src/sloop_bt_ble/ble_midi.c -o /tmp/sloop_bt_ble_midi_test
+      - name: Exercise BLE wire codec, running status and LED packing
+        run: /tmp/sloop_bt_ble_midi_test
