@@ -123,11 +123,15 @@ static void sloop_bt_hw_poll(uint32_t now_ms)
         sloop_bt_hw_last_age=now_ms;
         ble_scan_age(&sloop_bt_hw_scan,now_ms);
     }
+    sloop_bt_link.scan_reports=sloop_bt_hw_scan.reports;
+    sloop_bt_link.scan_kept=sloop_bt_hw_scan.kept;
+    sloop_bt_link.scan_bad=sloop_bt_hw_scan.bad_ad;
+    sloop_bt_link.scan_ignored=sloop_bt_hw_scan.ignored_type;
     if(sloop_bt_link.state==SLOOP_BT_SCANNING) {
-        n=ble_scan_list(&sloop_bt_hw_scan,indexes);
+        n=ble_scan_discovery_list(&sloop_bt_hw_scan,indexes);
         for(i=0;i<n;i++){
             const struct ble_found *d=&sloop_bt_hw_scan.e[indexes[i]];
-            /* Only BLE-MIDI advertisements are returned by ble_scan_list. */
+            /* Show named BLE advertisements even without the MIDI UUID; do not auto-connect. */
             sloop_bt_link_found(&sloop_bt_link,d->addr,d->addr_rand,
                                 (int8_t)(-100+20*(int)ble_scan_bars(&sloop_bt_hw_scan,indexes[i])),
                                 d->name);
