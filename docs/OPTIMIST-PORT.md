@@ -71,3 +71,31 @@ proof the image fits on the device.**
 No diagnostic image, fake radio build, unvalidated loader or
 over-budget firmware must be distributed through the web flasher.
 Keep the original SLOOP `main` build undisturbed.
+
+## Actual target-link measurements (6 November 2026)
+
+A nonflashable, expanded-XIP JieLi target link of SLOOP's lean
+controller build plus the Optimist **real WL82 driver**, IRQ 29/45
+call trees, RF calibration startup and V15 RF tables completed in
+GitHub Actions run
+[42287856803](https://github.com/alfonsogordon/sloop-BT/actions/runs/42287856803):
+
+| Variant | Image size | FM1 physical app slot | Nominal space left |
+| --- | ---: | ---: | ---: |
+| Lean SLOOP + SMC controller, no radio | 551,176 B | 581,564 B | 30,388 B |
+| Optimist minimal central, fake baseband | 552,248 B | 581,564 B | 29,316 B |
+| Optimist central + real radio driver, IRQ handlers + RF startup | **579,756 B** | 581,564 B | **1,808 B** |
+
+The third value has much better retention of real Bluetooth code than
+the initial stub-only experiment. It is still a **diagnostic**: it is
+not a production radio initialization path; no tested IRQ installation,
+real scanning, physical SMC pairing, latency/load or hardware test
+exists. It deliberately did not produce a .fwsc file. The very narrow
+1,808-byte margin will likely need more space once UI/persistence
+and production state-management code is in place.
+
+Since that experiment the development branch has been updated to
+**exclude the redundant Hortator BLE-MIDI packet codec** when
+`SLOOP_BT_OPEN_MEASURE=1`. Optimist already supplies its own codec.
+The latest measurement is rerun separately and must be verified
+before quoting new image sizes.
