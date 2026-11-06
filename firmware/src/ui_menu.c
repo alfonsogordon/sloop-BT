@@ -101,7 +101,20 @@ UI_SMALL static const char *mi_value(uint32_t i, uint16_t *c)
         if (sloop_bt_link.count && sloop_bt_link.selected < sloop_bt_link.count)
             return sloop_bt_link.devices[sloop_bt_link.selected].name;
         return "NONE";
-    case MI_BT_STATUS: return sloop_bt_link_status(&sloop_bt_link);
+    case MI_BT_STATUS: {
+        /* Hardware diagnostic: report count tells whether the FM1 radio
+         * received anything at all, independent of the MIDI UUID filter.
+         * RX is the number of raw BLE advertisements since last scan.
+         * BAD counts malformed PDUs. */
+        static char stats[32];
+        if(sloop_bt_link.state!=SLOOP_BT_SCANNING)
+            return sloop_bt_link_status(&sloop_bt_link);
+        str_cpy(stats,"RX ",sizeof stats);
+        fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_reports);
+        str_cpy(stats+str_len(stats)," BAD ",sizeof stats-str_len(stats));
+        fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_bad);
+        return stats;
+    }
     case MI_BT_LANE_A: case MI_BT_LANE_B: case MI_BT_LANE_C: case MI_BT_LANE_D: {
         uint32_t k=i-MI_BT_LANE_A, lane=sloop_bt_mix.assignment[k];
         return lane<DRUM_LANES ? LANE_NAME[lane] : "UNKNOWN";
@@ -154,6 +167,7 @@ UI_SMALL static void draw_menu(void)
                    knob_accel_off * 179424673u + drum_preview * 236887691u + step_adv_off * 373587883u + flt_reso * 512927357u
 #if SLOOP_BT_CONTROL
                     + sloop_bt_link.state * 4040101u + sloop_bt_link.count * 401009u +
+                    sloop_bt_link.scan_reports * 131u + sloop_bt_link.scan_bad * 997u +
                     sloop_bt_mix.assignment[0] * 1301u + sloop_bt_mix.assignment[1] * 2909u +
                     sloop_bt_mix.assignment[2] * 4519u + sloop_bt_mix.assignment[3] * 7919u
 #endif
