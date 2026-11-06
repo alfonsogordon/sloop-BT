@@ -84,8 +84,7 @@ track*, not four new sequencer tracks. Eventually each of the four may
 be reassigned to any of SLOOP's sixteen named drum sounds. Mute, solo,
 select and record buttons for these four strips need specifically
 designed semantics; DO NOT index `trk[4..7]` (it contains only four
-tracks). Initial fader decoding emits `SMCBT_DRUM_LEVEL` and awaits a
-drum-specific handler.
+tracks). The event decoder emits `SMCBT_DRUM_LEVEL` and the firmware adapter now routes it to the dedicated lane-mixer state when compiled with `SLOOP_BT_CONTROL=1`.
 
 Fader pickup is always reset when a link establishes or a value is
 changed using the FM1's own controls, so connecting the physical
@@ -111,7 +110,7 @@ The Bluetooth page must never block real-time audio processing.
 No menu entries exist in the current firmware yet. The menu is gated
 on a successful BLE port and will be implemented separately.
 
-## Hortator-style button and LED layout (implemented as protocol, not yet wired to SLOOP)
+## Hortator-style button and LED layout (firmware adapter behind feature gate)
 
 The original SMC DAW mode sends four eight-button rows. We keep their
 physical meaning rather than inventing a new controller mode:
@@ -140,7 +139,7 @@ a message was queued before marking it sent.
 drum lanes without accidentally muting all synth tracks. Define
 the precedence of the drum bus mute/solo and per-lane mute/solo
 in the dedicated mixer bridge and make project restore safe.
-No drum mixing implementation or persistent lane levels exist yet.
+The optional drum mixer implements runtime levels, mute and solo. Drum-lane settings are not yet saved in projects, and no BLE connection has been established on hardware.
 
 **Important:** Even though `smcbt_midi` decodes all eight
 button columns, its event's `track` field represents the *physical
@@ -162,17 +161,32 @@ Committed independent, host-tested control pieces:
   firmware builds. At default unity the hook returns exactly the same
   sample. Validate CPU and smoothing before enabling in hardware.
 
-The dispatcher emits callbacks, but is **not yet connected to the real
-SLOOP UI**, the Bluetooth transport, or track persistence. The drum
-mixer holds runtime-only gain/mute/solo state; project saving and
-on-device assignment menus are not yet implemented.
+The dispatcher is now connected to SLOOP's live synth/drum track state through `sloop_bt_control.c`, guarded by `SLOOP_BT_CONTROL=1` and `SLOOP_BT_DRUM_MIX=1` (both default OFF). Hortator's BLE-MIDI wire codec is imported into `firmware/src/sloop_bt_ble/` and its notification callback is wired to that controller adapter. The radio driver, scanning, on-device pairing menu, LED transport, project persistence and full JieLi build are not yet present.
 
 No verified FM1 BLE build exists at this checkpoint. The web flasher
 is separate and can use known-good user-supplied SLOOP packages after
 GitHub Pages is enabled; it does not ship unfinished Bluetooth firmware.
 
-**Unresolved performance risk:** applying 64-bit arithmetic and division
-to each drum voice sample could exceed the FM1's audio budget when the
-per-lane volume is non-unity. Before enabling the DSP hook, replace it
-with a measured fixed-point multiply / smoothed gain stage and run the
-golden-audio and CPU regression tests with realistic polyphonic drums.
+The drum DSP hook has since been changed to a Q15 smoothed per-voice gain with block-level target calculation, avoiding a per-sample 64-bit division. The host tests cover mixer control semantics, but this audio path still requires JieLi target compilation and hardware CPU/audio tests. See `docs/BT-FIT.md` for the larger BLE firmware-size and pool-memory obstacle.
+
+## Latest host-tested pipeline
+
+Hortator BLE-MIDI bytes -> `ble_midi_parse` -> decoded MIDI event ->
+`sloop_bt_ble_notification` / `sloop_bt_receive_midi` ->
+`sloop_bt_dispatch` -> SLOOP's actual tracks or drum-lane state.
+
+The `tests/sloop_bt_control_test.c` test includes the **real firmware
+adapter** with lightweight SLOOP state stubs. It tests a BLE packet
+reaching the real track mute state, track selection, fader pickup,
+transport and preexisting solo restoration on disconnect. The codec
+also has independent BLE running-status and outbound packet tests.
+
+Build flags (explicitly forwarded by `tools/build.py`):
+```sh
+SLOOP_BT_CONTROL=1 SLOOP_BT_DRUM_MIX=1 ./build.sh
+```
+This is **NOT a Bluetooth-capable firmware** yet. No BLE central
+hardware driver or link-time BLE libraries are included by these flags,
+and compilation on the actual JieLi target has not been verified.
+The flags merely compile the controller/notification and optional drum
+DSP glue for sizing and integration work.
