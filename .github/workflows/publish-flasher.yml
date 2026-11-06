@@ -5,6 +5,7 @@ on:
     paths:
       - flasher/**
       - mixer/**
+      - tests/lab_flasher_test.mjs
       - web/fm1pkg.js
       - web/fm1ota.js
       - .github/workflows/publish-flasher.yml
