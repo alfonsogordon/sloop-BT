@@ -111,7 +111,9 @@ UI_SMALL static const char *mi_value(uint32_t i, uint16_t *c)
             return sloop_bt_link_status(&sloop_bt_link);
         str_cpy(stats,"RX ",sizeof stats);
         fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_reports);
-        str_cpy(stats+str_len(stats)," BAD ",sizeof stats-str_len(stats));
+        str_cpy(stats+str_len(stats)," K",sizeof stats-str_len(stats));
+        fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_kept);
+        str_cpy(stats+str_len(stats)," B",sizeof stats-str_len(stats));
         fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_bad);
         return stats;
     }
@@ -167,7 +169,7 @@ UI_SMALL static void draw_menu(void)
                    knob_accel_off * 179424673u + drum_preview * 236887691u + step_adv_off * 373587883u + flt_reso * 512927357u
 #if SLOOP_BT_CONTROL
                     + sloop_bt_link.state * 4040101u + sloop_bt_link.count * 401009u +
-                    sloop_bt_link.scan_reports * 131u + sloop_bt_link.scan_bad * 997u +
+                    sloop_bt_link.scan_reports * 131u + sloop_bt_link.scan_kept * 37u + sloop_bt_link.scan_bad * 997u +
                     sloop_bt_mix.assignment[0] * 1301u + sloop_bt_mix.assignment[1] * 2909u +
                     sloop_bt_mix.assignment[2] * 4519u + sloop_bt_mix.assignment[3] * 7919u
 #endif
