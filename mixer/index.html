@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SLOOP-BT | SMC-Mixer Test Bench</title>
+<style>
+:root{color-scheme:dark;--bg:#0d101b;--card:#1b2030;--line:#333a52;--text:#f2f4fd;--muted:#a5b1c8;--cyan:#7adce6;--red:#ef7897;--yellow:#ffcd7e;--green:#95e3bc}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#27304a,var(--bg) 65%);font:14px/1.5 system-ui,sans-serif;color:var(--text)}
+main{max-width:1260px;padding:30px 18px 60px;margin:auto}
+header{display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap}
+h1{font-size:clamp(24px,4vw,37px);line-height:1.1;letter-spacing:-.05em;margin:5px 0}h1 span{color:var(--cyan)}
+h2{font-size:17px;margin:0 0 10px}p{color:var(--muted);margin:8px 0 16px}
+.badge{color:var(--yellow);border:1px solid #69543c;border-radius:100px;padding:6px 10px;font-size:12px;font-weight:700}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin:18px 0}
+.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+button,select{background:#353d58;color:var(--text);border:1px solid var(--line);padding:10px 12px;border-radius:9px;cursor:pointer;font:inherit}button.active{background:#3e6b6c;border-color:var(--cyan)}button.rec.active{background:#6c3c51;border-color:var(--red)}
+button:hover{border-color:var(--cyan)}button:disabled{opacity:.4;cursor:not-allowed}
+#play{background:#244a3d;border-color:#3c876f}#play.playing{background:#35664b}
+.mixer{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px;min-width:675px}
+.strip{padding:12px 7px 14px;border:1px solid #333d57;border-radius:12px;background:#171b28;display:flex;flex-direction:column;align-items:center;gap:8px}
+.strip.selected{border-color:var(--cyan);box-shadow:0 0 0 1px #508893}
+.strip.drums{background:#211d2d}
+.strip .number{font:700 11px/1.1 system-ui;color:var(--muted);letter-spacing:.08em}
+.strip .name{font-size:13px;font-weight:700;text-align:center;min-height:35px}
+.strip input[type=range]{writing-mode:vertical-lr;direction:rtl;appearance:slider-vertical;height:190px;width:32px;accent-color:var(--cyan);cursor:pointer}
+.strip.drums input[type=range]{accent-color:#c6a0f2}
+.strip .num{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.strip button{font-size:11px;width:100%;padding:8px 1px;font-weight:700}
+.strip button.mute.active{background:#725b2d;color:#ffe6a6;border-color:var(--yellow)}
+.strip button.solo.active{background:#436d51;border-color:var(--green)}
+.strip button.rec.active{background:#743b52;border-color:var(--red)}
+.strip button.sel.active{background:#2f6973;border-color:var(--cyan)}
+.strip select{width:100%;padding:5px 0;font-size:11px}
+#log{max-height:150px;overflow:auto;font:12px/1.5 ui-monospace,Consolas,monospace;white-space:pre-wrap;color:#b5c7df}
+.scroll{overflow-x:auto}
+#status{color:var(--green)}#deviceStatus{color:var(--muted)}
+.note{border-left:3px solid var(--yellow);padding:10px 14px;color:#eddbb6;background:#312c2a;border-radius:4px}
+footer{color:var(--muted);border-top:1px solid var(--line);padding-top:20px;font-size:12px}
+a{color:#bed2ff}
+@media(max-width:700px){.strip{gap:6px}.mixer{gap:5px}.panel{padding:12px}}
+</style>
+</head>
+<body>
+<main>
+<header><div><div style="font-weight:700;letter-spacing:.15em;color:var(--muted);font-size:12px">M-VAVE FM1 EXPERIMENT</div><h1>SLOOP<span>–BT</span> / Mixer Lab</h1></div><div class="badge">SIMULATION · NOT AN FM1 CONNECTION</div></header>
+<p>Test the proposed Hortator-style eight-channel SMC-Mixer layout. Operate the controls below, or connect the physical SMC-Mixer to your computer as a USB MIDI controller. The model follows the mappings in the SLOOP-BT firmware source.</p>
+<section class="panel"><div class="top"><button id="connect">Connect USB MIDI input</button><select id="midi" aria-label="MIDI input"><option value="">Select a controller</option></select><span id="deviceStatus">No hardware MIDI input connected</span><button id="reset">Reset simulation</button></div><p class="note">This is a controller-test simulator, not a Bluetooth connection or firmware flasher. The FM1 is not changed and no MIDI is sent to it. Use SMC-Mixer DAW/Mackie mode when testing real MIDI input.</p></section>
+<section class="panel"><div class="top"><button id="play">▶ Play</button><button id="stop">■ Stop</button><button id="globalrec" class="rec">● Record</button><span id="status">Stopped · simulated transport</span></div></section>
+<section class="panel"><h2>Eight physical mixer strips</h2><div class="scroll"><div class="mixer" id="mixer"></div></div><p>Strips 1–3: synth tracks. Strip 4: whole drum bus. Strips 5–8: kick, snare, closed hat and clap by default; you can reassign these to any of SLOOP's sixteen drum lanes. <strong>Faders use soft pickup when external MIDI input is connected.</strong></p></section>
+<section class="panel"><h2>MIDI event monitor</h2><div class="top"><button id="clearLog">Clear log</button><span id="events">0 events</span></div><pre id="log">Use the screen controls or connect USB MIDI to test the protocol.</pre></section>
+<footer><p>GPL-3.0-only · <a href="../">SLOOP-BT web flasher</a> · <a href="https://github.com/alfonsogordon/sloop-BT/pull/1" target="_blank" rel="noopener">Source and development</a> · <a href="https://github.com/DeadActive/hortator" target="_blank" rel="noopener">Hortator mixer reference</a></p></footer>
+</main>
+<script type="module">
+const $=id=>document.getElementById(id);
+const LANE_NAMES=['Kick','Kick 2','Snare','Clap','Hat','Open Hat','Pedal Hat','Rim','Snare 2','Low Tom','Hi Tom','Crash','Ride','Shaker','Conga','Cowbell'];
+const initial=[0,2,4,3];
+const channels=['Synth 1','Synth 2','Synth 3','Drum Bus','Kick','Snare','Hat','Clap'];
+let state,interfaceInput=null,midi=null;
+let eventCount=0,previewFaders;
+function reset(){
+  state={level:[100,100,100,100,127,127,127,127],mute:Array(8).fill(false),solo:Array(8).fill(false),rec:Array(8).fill(false),selected:0,playing:false,recording:false,lanes:[...initial]};
+  previewFaders=Array.from({length:8},()=>({seen:false,picked:false,last:0}));
+  render();note('Simulation reset');
+}
+function name(i){return i<4?channels[i]:LANE_NAMES[state.lanes[i-4]]}
+function note(t){eventCount++;$('events').textContent=eventCount+' events';const line=document.createElement('div');line.textContent=t;$('log').prepend(line);while($('log').childNodes.length>60)$('log').lastChild.remove();}
+function button(i,kind){
+  if(kind==='select'){state.selected=i;note('SELECT '+(i+1)+' → '+name(i))}
+  else if(kind==='rec') {
+    if(i>=4){state.selected=i;state.rec[3]=!state.rec[3];note('REC: drum track arm, focus '+name(i))}
+    else{state.rec[i]=!state.rec[i];note('REC '+name(i)+' '+(state.rec[i]?'ON':'OFF'))}
+  } else {state[kind][i]=!state[kind][i];note(kind.toUpperCase()+' '+name(i)+' '+(state[kind][i]?'ON':'OFF'))}
+  render();
+}
+function level(i,n,external=false){n=Math.max(0,Math.min(127,n|0));if(external){
+  let f=previewFaders[i],at=state.level[i],cross=f.seen&&((f.last<at)!==(n<at));
+  f.last=n;f.seen=true;
+  if(!f.picked){if(!cross&&(n+2<at||n>at+2)){note('FADER '+(i+1)+' waiting for pickup at '+at+' (received '+n+')');return}f.picked=true;note('FADER '+(i+1)+' PICKED UP');}
+}
+  if(state.level[i]!==n){state.level[i]=n;note('LEVEL '+name(i)+' = '+n)}
+  render();
+}
+function reassigned(i,l){state.lanes[i-4]=+l;previewFaders[i].picked=false;previewFaders[i].seen=false;note('DRUM STRIP '+(i+1)+' → '+name(i));render()}
+function render(){
+  const mixer=$('mixer');mixer.replaceChildren();
+  for(let i=0;i<8;i++){
+    const d=document.createElement('div');d.className='strip'+(i>=4?' drums':'')+(state.selected===i?' selected':'');
+    const n=document.createElement('div');n.className='number';n.textContent='STRIP '+(i+1);
+    const title=document.createElement('div');title.className='name';title.textContent=name(i);
+    const slider=document.createElement('input');slider.type='range';slider.min=0;slider.max=127;slider.value=state.level[i];slider.setAttribute('aria-label','Fader '+(i+1)+' '+name(i));slider.addEventListener('input',()=>level(i,+slider.value));
+    const v=document.createElement('div');v.className='num';v.textContent=state.level[i].toString();
+    d.append(n,title,slider,v);
+    if(i>=4){const sel=document.createElement('select');sel.setAttribute('aria-label','Drum assignment for strip '+(i+1));LANE_NAMES.forEach((x,l)=>{const o=document.createElement('option');o.value=l;o.textContent=x;sel.append(o)});sel.value=state.lanes[i-4];sel.addEventListener('change',()=>reassigned(i,sel.value));d.append(sel)}
+    for(const k of ['mute','solo','rec','select']){const b=document.createElement('button');b.className=(k==='select'?'sel':k)+(k==='select'?state.selected===i?' active':'':state[k][i]?' active':'');b.textContent=k.toUpperCase();b.addEventListener('click',()=>button(i,k));d.append(b)}
+    mixer.append(d);
+  }
+  $('play').classList.toggle('playing',state.playing);
+  $('globalrec').classList.toggle('active',state.recording);
+  $('status').textContent=(state.playing?'Playing':'Stopped')+(state.recording?' · Recording':'')+' · simulated transport';
+}
+$('play').onclick=()=>{state.playing=true;note('PLAY');render()};
+$('stop').onclick=()=>{state.playing=false;note('STOP');render()};
+$('globalrec').onclick=()=>{state.recording=!state.recording;note('GLOBAL REC '+(state.recording?'ON':'OFF'));render()};
+$('reset').onclick=reset;
+$('clearLog').onclick=()=>{$('log').replaceChildren();eventCount=0;$('events').textContent='0 events'};
+function midiMessage(data){
+  const [status,d1=0,d2=0]=data,type=status&0xf0,ch=status&15;
+  if(type===0xe0&&ch<8){const n=((d2&127)<<7 | (d1&127))>>7;level(ch,n,true);return}
+  if(type===0x90&&ch===0&&d2>0){
+    if(d1<32){const i=d1&7;button(i,d1<8?'rec':d1<16?'solo':d1<24?'mute':'select');return}
+    if(d1===0x5e){state.playing=true;note('PLAY (MIDI)');render();return}
+    if(d1===0x5d){state.playing=false;note('STOP (MIDI)');render();return}
+    if(d1===0x5f){state.recording=!state.recording;note('REC (MIDI)');render();return}
+  }
+  if(type===0xb0&&ch===0&&d1>=16&&d1<=23){
+    const delta=(d2&64)?-(d2&63):(d2&63);note('KNOB '+(d1-15)+' → relative '+delta);return
+  }
+}
+function inputs(){const select=$('midi');const previous=select.value;select.replaceChildren();const blank=document.createElement('option');blank.value='';blank.textContent='Select a controller';select.append(blank);
+  if(!midi)return;
+  for(const input of midi.inputs.values()){const o=document.createElement('option');o.value=input.id;o.textContent=input.name||'MIDI input';select.append(o)}
+  select.value=previous;
+  if(!select.value)select.value='';
+  connectInput();
+}
+function connectInput(){
+  if(interfaceInput)interfaceInput.onmidimessage=null;
+  interfaceInput=midi&&midi.inputs.get($('midi').value);
+  if(interfaceInput){interfaceInput.onmidimessage=e=>midiMessage(e.data);previewFaders.forEach(f=>{f.seen=f.picked=false});$('deviceStatus').textContent='Listening: '+interfaceInput.name+' (USB MIDI / system MIDI)';note('MIDI input connected')}
+  else $('deviceStatus').textContent='No hardware MIDI input connected';
+}
+$('midi').addEventListener('change',connectInput);
+$('connect').onclick=async()=>{
+  if(!navigator.requestMIDIAccess){$('deviceStatus').textContent='Web MIDI unavailable: use desktop Chrome or Edge';return}
+  try{midi=await navigator.requestMIDIAccess({sysex:false});midi.onstatechange=inputs;inputs();$('deviceStatus').textContent='MIDI access granted. Select the SMC-Mixer input.'}
+  catch(e){$('deviceStatus').textContent='MIDI access denied: '+e.message}
+};
+reset();
+</script>
+</body>
+</html>
