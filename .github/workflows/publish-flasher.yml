@@ -4,6 +4,7 @@ on:
     branches: [feature/smc-ble]
     paths:
       - flasher/**
+      - mixer/**
       - web/fm1pkg.js
       - web/fm1ota.js
       - .github/workflows/publish-flasher.yml
@@ -25,13 +26,22 @@ jobs:
       - uses: actions/checkout@v4
       - name: Assemble static site
         run: |
-          mkdir -p site
+          mkdir -p site/mixer
           cp flasher/index.html site/index.html
+          cp mixer/index.html site/mixer/index.html
           cp web/fm1pkg.js web/fm1ota.js site/
           test ! -e site/*.fwsc
           grep -q 'local firmware package' site/index.html
       - name: Basic JavaScript syntax checks
         run: |
+          python3 - <<'PY'
+          import re, pathlib
+          html=pathlib.Path('site/mixer/index.html').read_text()
+          match=re.search(r'<script type="module">(.*?)</script>',html,re.S)
+          assert match, 'mixer module script not found'
+          pathlib.Path('/tmp/sloop_bt_mixer.mjs').write_text(match.group(1))
+          PY
+          node --check /tmp/sloop_bt_mixer.mjs
           cp site/fm1pkg.js /tmp/fm1pkg.mjs
           cp site/fm1ota.js /tmp/fm1ota.mjs
           node --check /tmp/fm1pkg.mjs
