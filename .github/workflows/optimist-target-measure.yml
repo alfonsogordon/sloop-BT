@@ -6,6 +6,10 @@ on:
     paths:
       - third_party/optimist_ble/**
       - firmware/src/sloop_bt_open_measure.c
+      - firmware/src/sloop_bt_open_runtime.c
+      - firmware/src/ui_menu.c
+      - firmware/hal/fm1_bt_barrier.h
+      - firmware/src/sloop_bt_midi_ring.h
       - firmware/src/felucca.c
       - firmware/src/main.c
       - tools/build.py
