@@ -6,9 +6,12 @@ on:
     paths:
       - firmware/src/felucca.c
       - firmware/src/drums.c
+      - firmware/src/ui_menu.c
+      - firmware/src/main.c
       - firmware/src/sloop_bt_control.c
       - firmware/src/sloop_bt_ble/**
       - firmware/src/sloop_bt_link.h
+      - firmware/src/sloop_bt_dispatch.h
       - firmware/src/sloop_bt_drums.h
       - firmware/src/smcbt.h
       - firmware/src/smcbt_leds.h
