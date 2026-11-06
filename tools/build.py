@@ -203,7 +203,7 @@ def build_app():
            ("cc", *flags, "-c", FW / "src" / "felucca.c", "-o", OUT / "felucca.o"))
     elf = OUT / "felucca.elf"
     ld_script = FW / "app.ld"
-    if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1":
+    if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1" and os.environ.get("SLOOP_BT_PHYSICAL_FIT") != "1":
         # Diagnostic-only: permit an XIP region larger than physical FM1.
         # Absolutely never use this linker script for an installable image.
         measure = (FW / "app.ld").read_text().replace(
@@ -369,8 +369,9 @@ def main():
         errors, notes = check(img, syms, dis, rt)
         # Only XIP-slot overage is allowed in the oversized diagnostic.
         # Every other boot, RAM, pool, vector and safety check is mandatory.
-        errors = [e for e in errors if not (e.startswith("image ") and
-                  "exceeds the app slot" in e)]
+        if os.environ.get("SLOOP_BT_PHYSICAL_FIT") != "1":
+            errors = [e for e in errors if not (e.startswith("image ") and
+                      "exceeds the app slot" in e)]
         errors += mmio_check()
         for n in notes:
             print("  diagnostic ", n)
