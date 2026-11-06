@@ -13,8 +13,8 @@ class Element{
   async dispatch(kind){return await this.listeners[kind]?.({preventDefault(){}});}
 }
 const el=(id)=>{if(!els.has(id))els.set(id,new Element(id));return els.get(id);};
-for(const id of ['status','log','install','preflight','confirm','rfRisk','pkg','details','reset','progress'])el(id);
-let hash='WRONG',found='FM-1_900',loader=false,flashCount=0,confirm=false,prompt='',port='FM1-PORT-A';
+for(const id of ['status','log','install','preflight','load','confirm','rfRisk','details','reset','progress'])el(id);
+let hash='WRONG',found='FM-1_900',loader=false,flashCount=0,confirm=false,prompt='',port='FM1-PORT-A',serverCode=200,serverRedirect=false;
 const SHA='96b192869ca45abdcb364ca1f6fbaf89819776553a0df2b330a5c238f6fe2ab1';
 class Updater{
   constructor(access,log){}
@@ -29,15 +29,23 @@ class Updater{
 const context={document:{getElementById:el},window:{isSecureContext:true,confirm:()=>confirm,prompt:()=>prompt,addEventListener:()=>{}},
   navigator:{requestMIDIAccess:async()=>({})},
   Uint8Array,productOf:()=> 'FM-1_900',logicalImage:(b)=>b,
-  sha256hex:async()=>hash,Updater,console,setTimeout,clearTimeout};
+  sha256hex:async()=>hash,Updater,console,setTimeout,clearTimeout,
+  location:{href:'https://alfonsogordon.github.io/sloop-BT/lab/',origin:'https://alfonsogordon.github.io'},
+  URL,fetch:async()=>({ok:serverCode===200,status:serverCode,redirected:serverRedirect,
+    url:'https://alfonsogordon.github.io/sloop-BT/lab/firmware.fwsc',
+    headers:{get:(key)=>key==='content-length'?'610076':null},
+    arrayBuffer:async()=>new Uint8Array(610076).buffer})};
 vm.runInNewContext(js,context,{filename:'flasher/lab.html'});
 function check(v,label){if(!v)throw Error('FAIL: '+label);console.log('PASS: '+label);}
-const file={name:'sloop-bt-optimist-lab-UNTESTED.fwsc',arrayBuffer:async()=>new Uint8Array(610076).buffer};
-check(el('install').disabled,'installation disabled before selecting file');
-el('pkg').files=[file];await el('pkg').dispatch('change');
-check(el('install').disabled,'wrong package SHA blocked');
-hash=SHA;await el('pkg').dispatch('change');
-check(!el('preflight').disabled && el('install').disabled,'valid pinned SHA cannot bypass preflight');
+check(el('install').disabled,'installation disabled before fetching firmware');
+serverCode=404;await el('load').dispatch('click');
+check(el('install').disabled && el('preflight').disabled,'unavailable hosted firmware blocked');
+serverCode=200;hash='WRONG';await el('load').dispatch('click');
+check(el('install').disabled && el('preflight').disabled,'wrong hosted SHA blocked');
+serverRedirect=true;hash=SHA;await el('load').dispatch('click');
+check(el('install').disabled,'redirected firmware response blocked');
+serverRedirect=false;await el('load').dispatch('click');
+check(!el('preflight').disabled && el('install').disabled,'valid pinned hosted SHA cannot bypass preflight');
 el('confirm').checked=true;el('rfRisk').checked=true;
 el('confirm').dispatch('change');el('rfRisk').dispatch('change');
 check(el('install').disabled,'recovery consent alone cannot bypass preflight');
