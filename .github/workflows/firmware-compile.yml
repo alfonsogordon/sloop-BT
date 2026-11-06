@@ -1,0 +1,62 @@
+name: Experimental FM1 firmware compile (no release)
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - firmware/src/felucca.c
+      - firmware/src/drums.c
+      - firmware/src/sloop_bt_control.c
+      - firmware/src/sloop_bt_ble/**
+      - firmware/src/sloop_bt_link.h
+      - firmware/src/sloop_bt_drums.h
+      - firmware/src/smcbt.h
+      - firmware/src/smcbt_leds.h
+      - tools/build.py
+      - .github/workflows/firmware-compile.yml
+permissions:
+  contents: read
+jobs:
+  compile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: baseline
+            bt_control: "0"
+            bt_drum_mix: "0"
+          - variant: controller-no-radio
+            bt_control: "1"
+            bt_drum_mix: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq git git-lfs curl xz-utils python3-pil
+      - name: Retrieve pinned official JieLi toolchain
+        run: |
+          sh tools/get_toolchain.sh "$HOME/.jieli"
+          test -x "$HOME/.jieli/toolchain/pi32v2/bin/clang"
+      - name: Retrieve AC79 SDK reference
+        run: |
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK"
+          test -f "$HOME/fw-AC79_AIoT_SDK/cpu/wl82/tools/uboot.boot"
+      - name: Compile firmware and enforce firmware memory limits
+        env:
+          SLOOP_BT_CONTROL: ${{ matrix.bt_control }}
+          SLOOP_BT_DRUM_MIX: ${{ matrix.bt_drum_mix }}
+        run: |
+          sh build.sh 2>&1 | tee "build-${{ matrix.variant }}.log"
+          test -s build/felucca.bin
+          test -s build/felucca.fwsc
+          echo "Firmware target compile successful: ${{ matrix.variant }}"
+      - name: Upload compile logs, NOT flashable firmware
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.variant }}
+          path: build-${{ matrix.variant }}.log
+          if-no-files-found: ignore
