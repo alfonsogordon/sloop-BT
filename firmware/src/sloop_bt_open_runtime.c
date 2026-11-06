@@ -122,11 +122,12 @@ static void sloop_bt_hw_poll(uint32_t now_ms)
     if(now_ms-sloop_bt_hw_last_age>=1000u) {
         sloop_bt_hw_last_age=now_ms;
         ble_scan_age(&sloop_bt_hw_scan,now_ms);
+        /* Snapshot once per second, never redraw the LCD per advertisement. */
+        sloop_bt_link.scan_reports=sloop_bt_hw_scan.reports;
+        sloop_bt_link.scan_kept=sloop_bt_hw_scan.kept;
+        sloop_bt_link.scan_bad=sloop_bt_hw_scan.bad_ad;
+        sloop_bt_link.scan_ignored=sloop_bt_hw_scan.ignored_type;
     }
-    sloop_bt_link.scan_reports=sloop_bt_hw_scan.reports;
-    sloop_bt_link.scan_kept=sloop_bt_hw_scan.kept;
-    sloop_bt_link.scan_bad=sloop_bt_hw_scan.bad_ad;
-    sloop_bt_link.scan_ignored=sloop_bt_hw_scan.ignored_type;
     if(sloop_bt_link.state==SLOOP_BT_SCANNING) {
         n=ble_scan_discovery_list(&sloop_bt_hw_scan,indexes);
         for(i=0;i<n;i++){
