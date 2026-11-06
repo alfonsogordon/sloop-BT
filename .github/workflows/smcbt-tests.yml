@@ -6,7 +6,9 @@ on:
   pull_request:
     paths:
       - firmware/src/smcbt.h
+      - firmware/src/smcbt_leds.h
       - tests/smcbt_test.c
+      - tests/smcbt_leds_test.c
       - .github/workflows/smcbt-tests.yml
 jobs:
   smcbt:
@@ -17,3 +19,7 @@ jobs:
         run: cc -std=c99 -Wall -Wextra -Werror tests/smcbt_test.c -o /tmp/smcbt_test
       - name: Exercise SMC protocol and soft pickup
         run: /tmp/smcbt_test
+      - name: Compile SMC LED feedback tests
+        run: cc -std=c99 -Wall -Wextra -Werror tests/smcbt_leds_test.c -o /tmp/smcbt_leds_test
+      - name: Exercise LED feedback protocol
+        run: /tmp/smcbt_leds_test
