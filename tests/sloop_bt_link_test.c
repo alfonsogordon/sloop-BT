@@ -52,7 +52,12 @@ int main(void)
     sloop_bt_link_power(&l,1);
     sloop_bt_link_failed(&l);
     assert(l.state==SLOOP_BT_ERROR);
+    l.error=SLOOP_BT_ERR_PAIR_REQUIRED;
+    assert(sloop_bt_link_status(&l)[0]=='P');
+    l.error=SLOOP_BT_ERR_NO_MIDI;
+    assert(sloop_bt_link_status(&l)[0]=='N');
     sloop_bt_link_power(&l,0);
+    assert(l.state==SLOOP_BT_OFF);
     puts("SLOOP-BT BLE link model tests passed");
     return 0;
 }
