@@ -1,0 +1,19 @@
+name: SMC-Mixer decoder tests
+on:
+  push:
+    branches:
+      - feature/smc-ble
+  pull_request:
+    paths:
+      - firmware/src/smcbt.h
+      - tests/smcbt_test.c
+      - .github/workflows/smcbt-tests.yml
+jobs:
+  smcbt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile host unit tests
+        run: cc -std=c99 -Wall -Wextra -Werror tests/smcbt_test.c -o /tmp/smcbt_test
+      - name: Exercise SMC protocol and soft pickup
+        run: /tmp/smcbt_test
