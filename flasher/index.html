@@ -59,7 +59,7 @@ footer{font-size:13px;color:var(--muted);padding-top:25px;border-top:1px solid v
 </main>
 <script type="module">
 import { productOf, logicalImage, sha256hex } from './fm1pkg.js';
-import { Updater, OUR_LOADER } from './fm1ota.js';
+import { Updater } from './fm1ota.js';
 const el = id => document.getElementById(id);
 let selected = null;
 let busy = false;
@@ -100,7 +100,7 @@ el('install').addEventListener('click', async () => {
       if(k==='verify')el('progress').value=Math.min(20,20*(n||0)/74);
       else if(k==='write')el('progress').value=Math.min(99,20+80*(n||0)/1179);
       else if(k==='done')el('progress').value=100;};
-    const ota=await updater.find(id=>OUR_LOADER(id),true);
+    const ota=await updater.find(id=>/^ota-/i.test(id.model),true);
     if(ota){ota.link.close();const ok=await updater.resume(pkg.image,step);if(!ok)throw new Error('Update interrupted; reconnect and retry');}
     else await updater.install(pkg.image,pkg.product,step);
     say('Installation completed. Reconnect USB if the FM1 does not reappear.');
