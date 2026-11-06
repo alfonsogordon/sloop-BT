@@ -54,10 +54,11 @@ BLE_API void ble_app_state(void){sloop_bt_open_state_dirty=1;}
  * paths for measurement, but never call this from the product build.
  * The blob is internal to the measurement build and not released.
  */
-static __attribute__((used)) int sloop_bt_open_probe(void)
+static __attribute__((noinline,used)) int sloop_bt_open_probe(void)
 {
     static const uint8_t addr[6]={0x12,0x34,0x56,0x78,0x9a,0xc0};
-    struct ble_peer peer={0};
+    struct ble_peer peer;
+    ble_zero((uint8_t *)&peer,sizeof peer);
     uint8_t packet[8];
     unsigned index=0;
     uint32_t n;
@@ -76,3 +77,17 @@ static __attribute__((used)) int sloop_bt_open_probe(void)
     return (int)ble_connected()+(int)ble_central_fail();
 }
 #endif
+
+/* Called from main.c in the measurement-only variant, so interprocedural
+ * DCE cannot delete the entire Bluetooth codepath as unused. Never
+ * present in a packaged build (the tool refuses to package this mode).
+ */
+static volatile int sloop_bt_open_measure_sink;
+static void sloop_bt_open_measure_tick(void)
+{
+    static uint8_t ran;
+    if(!ran) {
+        ran=1;
+        sloop_bt_open_measure_sink=sloop_bt_open_probe();
+    }
+}
