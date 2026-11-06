@@ -7,8 +7,11 @@ on:
     paths:
       - firmware/src/smcbt.h
       - firmware/src/smcbt_leds.h
+      - firmware/src/sloop_bt_drums.h
+      - firmware/src/drums.c
       - tests/smcbt_test.c
       - tests/smcbt_leds_test.c
+      - tests/sloop_bt_drums_test.c
       - .github/workflows/smcbt-tests.yml
 jobs:
   smcbt:
@@ -23,3 +26,7 @@ jobs:
         run: cc -std=c99 -Wall -Wextra -Werror tests/smcbt_leds_test.c -o /tmp/smcbt_leds_test
       - name: Exercise LED feedback protocol
         run: /tmp/smcbt_leds_test
+      - name: Compile drum-lane mixer tests
+        run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_drums_test.c -o /tmp/sloop_bt_drums_test
+      - name: Exercise four drum mixer strips
+        run: /tmp/sloop_bt_drums_test
