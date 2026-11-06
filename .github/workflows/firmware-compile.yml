@@ -16,6 +16,7 @@ on:
       - firmware/src/smcbt.h
       - firmware/src/smcbt_leds.h
       - tools/build.py
+      - tools/bt_size_report.py
       - .github/workflows/firmware-compile.yml
 permissions:
   contents: read
@@ -56,10 +57,14 @@ jobs:
           test -s build/felucca.bin
           test -s build/felucca.fwsc
           echo "Firmware target compile successful: ${{ matrix.variant }}"
+      - name: Report largest XIP and RAM symbols
+        run: python3 tools/bt_size_report.py | tee "symbols-${{ matrix.variant }}.txt"
       - name: Upload compile logs, NOT flashable firmware
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-logs-${{ matrix.variant }}
-          path: build-${{ matrix.variant }}.log
+          path: |
+            build-${{ matrix.variant }}.log
+            symbols-${{ matrix.variant }}.txt
           if-no-files-found: ignore
