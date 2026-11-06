@@ -57,6 +57,7 @@ jobs:
           pkg=Path('build/sloop-bt-optimist-lab-UNTESTED.fwsc').read_bytes()
           digest=hashlib.sha256(pkg).hexdigest()
           expected='6c2c201cec9a3cc63e35ab71c235ec4e833af180835be062557e81d3e5b18d22'
+          print('REVIEW_CANDIDATE',len(pkg),digest,flush=True)
           assert len(pkg)==610076,(len(pkg),610076)
           assert digest==expected,('UNREVIEWED BUILD HASH',digest)
           assert fm1_install.product_of(pkg)=='FM-1_900'
