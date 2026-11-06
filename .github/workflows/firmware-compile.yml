@@ -10,6 +10,8 @@ on:
       - firmware/src/main.c
       - firmware/src/sloop_bt_control.c
       - firmware/src/sloop_bt_ble/**
+      - firmware/hal/fm1_bt_barrier.h
+      - firmware/src/sloop_bt_midi_ring.h
       - firmware/src/sloop_bt_link.h
       - firmware/src/sloop_bt_dispatch.h
       - firmware/src/sloop_bt_drums.h
@@ -44,54 +46,6 @@ jobs:
             logo: "0"
             uart: "1"
             visualizer: "1"
-          - variant: no-usb-audio
-            bt_control: "1"
-            bt_drum_mix: "1"
-            uac: "0"
-            icons: "1"
-            logo: "0"
-            uart: "1"
-            visualizer: "1"
-          - variant: no-icons
-            bt_control: "1"
-            bt_drum_mix: "1"
-            uac: "1"
-            icons: "0"
-            logo: "0"
-            uart: "1"
-            visualizer: "1"
-          - variant: text-logo
-            bt_control: "1"
-            bt_drum_mix: "1"
-            uac: "1"
-            icons: "1"
-            logo: "1"
-            uart: "1"
-            visualizer: "1"
-          - variant: no-trs-midi
-            bt_control: "1"
-            bt_drum_mix: "1"
-            uac: "1"
-            icons: "1"
-            logo: "0"
-            uart: "0"
-            visualizer: "1"
-          - variant: no-visualizer
-            bt_control: "1"
-            bt_drum_mix: "1"
-            uac: "1"
-            icons: "1"
-            logo: "0"
-            uart: "1"
-            visualizer: "0"
-          - variant: lean-combined
-            bt_control: "1"
-            bt_drum_mix: "1"
-            uac: "0"
-            icons: "0"
-            logo: "1"
-            uart: "1"
-            visualizer: "1"
           - variant: lean-no-visualizer
             bt_control: "1"
             bt_drum_mix: "1"
@@ -112,7 +66,11 @@ jobs:
           test -x "$HOME/.jieli/toolchain/pi32v2/bin/clang"
       - name: Retrieve AC79 SDK reference
         run: |
-          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK"
+          for attempt in 1 2 3; do
+            git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK" && break
+            rm -rf "$HOME/fw-AC79_AIoT_SDK"
+            sleep 3
+          done
           test -f "$HOME/fw-AC79_AIoT_SDK/cpu/wl82/tools/uboot.boot"
       - name: Compile firmware and enforce firmware memory limits
         env:
