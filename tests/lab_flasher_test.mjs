@@ -14,7 +14,7 @@ class Element{
 }
 const el=(id)=>{if(!els.has(id))els.set(id,new Element(id));return els.get(id);};
 for(const id of ['status','log','install','preflight','confirm','rfRisk','pkg','details','reset','progress'])el(id);
-let hash='WRONG',found='FM-1_900',loader=false,flashCount=0,confirm=false,prompt='';
+let hash='WRONG',found='FM-1_900',loader=false,flashCount=0,confirm=false,prompt='',port='FM1-PORT-A';
 const SHA='96b192869ca45abdcb364ca1f6fbaf89819776553a0df2b330a5c238f6fe2ab1';
 class Updater{
   constructor(access,log){}
@@ -22,7 +22,7 @@ class Updater{
     const val=loader?'ota-FM-1_900':found;
     const id={model:val.startsWith('ota-')?'ota-FM-1':'FM-1',text:val};
     if(!filter(id))return null;
-    return {id,link:{close(){}}};
+    return {id,link:{input:{id:port},output:{id:port+'-OUT'},close(){}}};
   }
   async install(){flashCount++;}
 }
@@ -51,6 +51,9 @@ await el('install').dispatch('click');
 check(flashCount===0,'cancelled browser confirmation never flashes');
 confirm=true;prompt='NO';await el('install').dispatch('click');
 check(flashCount===0,'incorrect typed risk confirmation never flashes');
-prompt='FLASH UNTESTED';await el('install').dispatch('click');
+prompt='FLASH UNTESTED';
+port='FM1-PORT-B';await el('install').dispatch('click');
+check(flashCount===0,'changed FM1 port after preflight blocks flashing');
+port='FM1-PORT-A';await el('install').dispatch('click');
 check(flashCount===1 && el('install').disabled,'only fully authorized test calls OTA, then relocks');
 console.log('SLOOP-BT lab flasher UI safety tests passed');
