@@ -99,3 +99,33 @@ Since that experiment the development branch has been updated to
 `SLOOP_BT_OPEN_MEASURE=1`. Optimist already supplies its own codec.
 The latest measurement is rerun separately and must be verified
 before quoting new image sizes.
+
+## Native Optimist MIDI bridge and later link measurement
+
+The Optimist measurement variant now excludes the redundant legacy
+Hortator BLE-MIDI codec, and has an IRQ-only input path through the
+bounded queue. The full Optimist BLE codec provides MIDI packet
+encoding; `ble_app_midi_peek` and `ble_app_midi_pop` feed SMC LEDs
+back to the controller, with acknowledgement deferred to the main
+loop. The UI/track functions are never intentionally invoked directly
+from Bluetooth interrupt context.
+
+A new real-driver/IRQ/RF-startup build with this more complete output
+path measured **583,628 B** against the **581,564 B** physical app
+slot: **2,064 B too large**. This is a nonflashable, expanded-linker
+diagnostic. The radio is not yet initialized or connected on real
+hardware. Earlier 579,756 B measurement was an incomplete diagnostic,
+not a release candidate.
+
+Two further nonflashable alternatives are configured for measurement:
+
+- `SLOOP_BT_SPLASH=0`: remove only the decorative boot splash and
+  boot pause; no audio functionality removed.
+- `SLOOP_BT_SIZE_OPT=1`: compile the diagnostic with Clang `-Oz`
+  instead of `-Os`. This changes optimization of all firmware
+  functions, so before any use in a product build it must pass the
+  full DSP golden-output and CPU performance tests. It is not
+  automatically safe merely because the image is smaller.
+
+No optimized-build size claim is valid until its GitHub Actions job
+has completed successfully.
