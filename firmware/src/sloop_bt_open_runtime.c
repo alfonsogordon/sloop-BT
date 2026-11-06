@@ -27,7 +27,6 @@ static void sloop_bt_hw_start(void)
      * A production port must derive and save a unit-unique address.
      */
     static const uint8_t address[6]={0x51,0x4c,0x4f,0x4f,0x50,0xcf};
-    uint32_t flags;
     if(sloop_bt_hw_started) {
         /* The RF is already calibrated after an earlier OFF/ON.
          * Re-enable the link layer without retuning an active block.
@@ -39,13 +38,13 @@ static void sloop_bt_hw_start(void)
         return;
     }
     ble_init(address,1u);
-    flags=irq_save();
+    fm1_irq_off();
     fm1_guard_unlock_top();
     fm1_ble_irq_attach(BLE_HW_IRQ_PRIO); /* RX 29 / event 45 below audio */
     fm1_ble_irqs_hold(1);
     fm1_guard_lock_top();
-    irq_restore(flags);
-    fm1_rf_cal_on=1u;
+    fm1_irq_on();
+    /* Imported V15 RF path handles its own startup and VCO scan. */
     ble_hw_wl82_start(&sloop_bt_hw_trims);
     fm1_ble_irqs_hold(1);
     ble_enable(1);
