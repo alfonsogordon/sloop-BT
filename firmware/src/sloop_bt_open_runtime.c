@@ -28,7 +28,16 @@ static void sloop_bt_hw_start(void)
      */
     static const uint8_t address[6]={0x51,0x4c,0x4f,0x4f,0x50,0xcf};
     uint32_t flags;
-    if(sloop_bt_hw_started)return;
+    if(sloop_bt_hw_started) {
+        /* The RF is already calibrated after an earlier OFF/ON.
+         * Re-enable the link layer without retuning an active block.
+         */
+        fm1_ble_irqs_hold(1);
+        ble_enable(1);
+        fm1_ble_irqs_hold(0);
+        sloop_bt_link_radio_ready(&sloop_bt_link);
+        return;
+    }
     ble_init(address,1u);
     flags=irq_save();
     fm1_guard_unlock_top();
