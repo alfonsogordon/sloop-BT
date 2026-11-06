@@ -5,6 +5,11 @@ on:
     branches: [feature/smc-ble]
     paths:
       - .github/workflows/lab-firmware.yml
+      - firmware/src/sloop_bt_open_runtime.c
+      - firmware/src/sloop_bt_link.h
+      - firmware/src/ui_menu.c
+      - third_party/optimist_ble/ble_scan.c
+      - third_party/optimist_ble/ble_scan.h
 permissions:
   contents: read
 jobs:
