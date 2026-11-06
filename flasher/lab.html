@@ -40,7 +40,7 @@ footer{font-size:13px;color:var(--muted);padding-top:25px;border-top:1px solid v
 <section class="card full">
 <h2>Verify exact lab firmware file</h2>
 <p><a href="https://github.com/alfonsogordon/sloop-BT/actions/runs/42294251968" target="_blank" rel="noopener">Download the pinned, untested FM1 firmware artifact</a> (GitHub Actions → Artifacts). Extract <code>sloop-bt-optimist-lab-UNTESTED.fwsc</code>, then select it below.</p>
-<p>Expected SHA-256: <code>6c2c201cec9a3cc63e35ab71c235ec4e833af180835be062557e81d3e5b18d22</code></p>
+<p>Expected SHA-256: <code>96b192869ca45abdcb364ca1f6fbaf89819776553a0df2b330a5c238f6fe2ab1</code></p>
 <p><a href="https://github.com/alfonsogordon/sloop-BT/blob/feature/smc-ble/docs/LAB-TEST.md" target="_blank" rel="noopener">Read the SWD backup and recovery checklist before proceeding</a>.</p>
 <p>The firmware file stays in your browser. Nothing is uploaded to a server. Only the exact pinned SLOOP-BT lab build is accepted. An FM1 identity alone is not enough, and matching a SHA-256 does not prove safe hardware behaviour.</p>
 <div class="alert">Before flashing, back up projects and samples using the SLOOP web editor. Use a USB <strong>data</strong> cable and keep the FM1 connected until the update finishes. SWD recovery is required: USB rescue might not work after a failed radio firmware boot.</div>
@@ -64,7 +64,7 @@ footer{font-size:13px;color:var(--muted);padding-top:25px;border-top:1px solid v
 import { productOf, logicalImage, sha256hex } from '../fm1pkg.js';
 import { Updater } from '../fm1ota.js';
 const el = id => document.getElementById(id);
-const LAB_SHA = '6c2c201cec9a3cc63e35ab71c235ec4e833af180835be062557e81d3e5b18d22';
+const LAB_SHA = '96b192869ca45abdcb364ca1f6fbaf89819776553a0df2b330a5c238f6fe2ab1';
 const LAB_FILE = 'sloop-bt-optimist-lab-UNTESTED.fwsc';
 const LAB_SIZE = 610076;
 let preflightOK = false;
