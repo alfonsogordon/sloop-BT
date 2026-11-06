@@ -13,6 +13,7 @@ static smcbt_state_t sloop_bt_controller;
 static uint8_t sloop_bt_connected;
 static uint8_t sloop_bt_focus_lane;
 static uint8_t sloop_bt_focus_strip;
+static uint8_t sloop_bt_solo_initial, sloop_bt_solo_touched;
 static smcbt_led_state_t sloop_bt_leds;
 
 static uint8_t sloop_bt_track_level(unsigned i)
@@ -30,6 +31,8 @@ static void sloop_bt_control_connect(void)
         level[i]=lane<16u?sloop_bt_mix.gain[lane]:127u;
     }
     smcbt_reset(&sloop_bt_controller,level);
+    sloop_bt_solo_initial=song.solo;
+    sloop_bt_solo_touched=0;
     ble_midi_reset(&sloop_bt_ble_in);
     smcbt_led_reset(&sloop_bt_leds);
     sloop_bt_connected=1u;
@@ -39,7 +42,9 @@ static void sloop_bt_control_disconnect(void)
     sloop_bt_connected=0u;
     /* A remote solo may otherwise leave the project unexpectedly muted. */
     sloop_bt_mix.solo=0;
-    song.solo=0;
+    song.solo=(uint8_t)((song.solo & (uint8_t)~sloop_bt_solo_touched) |
+                        (sloop_bt_solo_initial & sloop_bt_solo_touched));
+    sloop_bt_solo_touched=0;
 }
 static void sloop_bt_level(void *unused,unsigned i,unsigned level)
 {
@@ -62,6 +67,7 @@ static void sloop_bt_solo(void *unused,unsigned i)
     (void)unused;
     if(i<NTRK) {
         song.solo^=(uint8_t)(1u<<i);
+        sloop_bt_solo_touched|=(uint8_t)(1u<<i);
         ui.force=1;
     }
 }
@@ -173,7 +179,8 @@ static void sloop_bt_control_led_status(smcbt_led_status_t *out)
         out->solo|=(uint8_t)(((sloop_bt_mix.solo>>lane)&1u)<<i);
         out->rec|=(uint8_t)(((song.rec>>TRK_DRUM)&1u)<<i);
     }
-    out->selected=sloop_bt_focus_strip;
+    out->selected=(uint8_t)(song.sel==TRK_DRUM && sloop_bt_focus_strip>=4u
+                                 ? sloop_bt_focus_strip : song.sel);
     out->playing=song.playing!=0;
     out->recording=song.rec!=0;
 }
