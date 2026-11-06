@@ -6,6 +6,8 @@
  */
 #include "sloop_bt_dispatch.h"
 #include "smcbt_leds.h"
+#include "sloop_bt_ble/ble_midi.c" /* Hortator GPL BLE-MIDI byte protocol; single SLOOP TU */
+static ble_midi_t sloop_bt_ble_in;
 
 static smcbt_state_t sloop_bt_controller;
 static uint8_t sloop_bt_connected;
@@ -28,6 +30,7 @@ static void sloop_bt_control_connect(void)
         level[i]=lane<16u?sloop_bt_mix.gain[lane]:127u;
     }
     smcbt_reset(&sloop_bt_controller,level);
+    ble_midi_reset(&sloop_bt_ble_in);
     smcbt_led_reset(&sloop_bt_leds);
     sloop_bt_connected=1u;
 }
@@ -119,6 +122,21 @@ static void sloop_bt_receive_midi(uint8_t status,uint8_t d1,uint8_t d2)
     sloop_bt_dispatch(&e,&sloop_bt_mix,&sloop_bt_ops,0);
     if(e.kind==SMCBT_DRUM_LEVEL||e.kind==SMCBT_MUTE||e.kind==SMCBT_SOLO)
         ui.force=1;
+}
+/* BLE central adapter: only call from BLE service on SLOOP's main
+ * loop after subscription. Decode a standard BLE-MIDI notification
+ * and hand messages to the controller dispatcher. Not a radio driver.
+ */
+static void sloop_bt_ble_packet(void *ctx,uint32_t packet)
+{
+    (void)ctx;
+    if(((packet>>8)&0xf0u)==0xf0u)return; /* SMC DAW ignores system bytes */
+    sloop_bt_receive_midi((uint8_t)(packet>>8),(uint8_t)(packet>>16),(uint8_t)(packet>>24));
+}
+static void sloop_bt_ble_notification(const uint8_t *payload,uint32_t length)
+{
+    if(!sloop_bt_connected)return;
+    ble_midi_parse(&sloop_bt_ble_in,payload,length,sloop_bt_ble_packet,0);
 }
 /* The four synth/drum bus level faders and four drum-lane faders must
  * re-pick when their values change at the device (knobs, load, editor).
