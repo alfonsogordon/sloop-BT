@@ -90,8 +90,13 @@ UI_SMALL static const char *mi_value(uint32_t i, uint16_t *c)
         return KEYS_NAME[lights_keys % KEYS_N];
     case MI_NOTES: return lights_notes ? "ON" : "OFF";
 #if SLOOP_BT_CONTROL
+#if defined(SLOOP_BT_OPEN_MEASURE) && SLOOP_BT_OPEN_MEASURE && defined(SLOOP_BT_RADIO_MEASURE) && SLOOP_BT_RADIO_MEASURE
+    case MI_BT_POWER: return sloop_bt_link.enabled ? "ON" : "OFF";
+    case MI_BT_SCAN: return sloop_bt_link.state==SLOOP_BT_SCANNING ? "SCANNING" : "RESCAN";
+#else
     case MI_BT_POWER: return "NOT BUILT";
     case MI_BT_SCAN: return "NO RADIO";
+#endif
     case MI_BT_DEVICE:
         if (sloop_bt_link.count && sloop_bt_link.selected < sloop_bt_link.count)
             return sloop_bt_link.devices[sloop_bt_link.selected].name;
@@ -278,9 +283,33 @@ UI_SMALL static void mi_set(uint32_t i, int32_t s)
 {
     switch (i) {
 #if SLOOP_BT_CONTROL
+#if defined(SLOOP_BT_OPEN_MEASURE) && SLOOP_BT_OPEN_MEASURE && defined(SLOOP_BT_RADIO_MEASURE) && SLOOP_BT_RADIO_MEASURE
+    case MI_BT_POWER:
+        sloop_bt_link_power(&sloop_bt_link,s>0 || (s==0 && !sloop_bt_link.enabled));
+        ui.force=1;
+        break;
+    case MI_BT_SCAN:
+        if(sloop_bt_link.enabled)sloop_bt_link_scan(&sloop_bt_link);
+        else if(!s)ui_message("TURN BT ON FIRST");
+        ui.force=1;
+        break;
+    case MI_BT_DEVICE:
+        if(sloop_bt_link.state!=SLOOP_BT_SCANNING || !sloop_bt_link.count){
+            if(!s)ui_message("SCAN FIRST");
+            break;
+        }
+        if(s)
+            sloop_bt_link.selected=(uint8_t)((sloop_bt_link.selected+
+                     (s>0?1u:sloop_bt_link.count-1u))%sloop_bt_link.count);
+        else
+            sloop_bt_link_select(&sloop_bt_link,sloop_bt_link.selected);
+        ui.force=1;
+        break;
+#else
     case MI_BT_POWER: case MI_BT_SCAN: case MI_BT_DEVICE:
         if (!s) ui_message("BLE DRIVER NOT READY");
         break;
+#endif
     case MI_BT_STATUS:
         break;
     case MI_BT_LANE_A: case MI_BT_LANE_B: case MI_BT_LANE_C: case MI_BT_LANE_D: {
