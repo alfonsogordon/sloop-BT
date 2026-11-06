@@ -28,7 +28,7 @@ static sloop_bt_drums_t sloop_bt_mix = {
 #endif
 #ifndef DRUM_VOICE_FX
 #if SLOOP_BT_DRUM_MIX
-#define DRUM_VOICE_FX(k, s) sloop_bt_drum_gain_sample(&sloop_bt_mix, lane_of_note(drums.v[k].note), (s))
+#define DRUM_VOICE_FX(k, s) sloop_bt_voice_apply((k), (s))
 #else
 #define DRUM_VOICE_FX(k, s) (s)
 #endif
@@ -390,6 +390,45 @@ static void drum_on(uint32_t note, uint32_t vel)
     }
 }
 
+#if SLOOP_BT_DRUM_MIX
+/* Per-voice gain smoothing for mixer faders and mutes. The target is
+ * computed once per 256-sample audio block, so the sample loop needs
+ * only a short Q15 ramp and one fixed-point multiply when non-unity.
+ * Full unity bypasses the multiply, preserving SLOOP's original audio
+ * samples bit for bit until a mixer control actually changes them.
+ */
+static uint16_t sloop_bt_voice_q15[NDRUM] = {32767,32767,32767,32767,32767,32767};
+static uint16_t sloop_bt_target_q15[NDRUM] = {32767,32767,32767,32767,32767,32767};
+static void sloop_bt_voice_targets(void)
+{
+    uint32_t k;
+    for(k=0;k<NDRUM;k++) {
+        unsigned lane=lane_of_note(drums.v[k].note);
+        unsigned g=sloop_bt_mix.gain[lane];
+        uint16_t bit=(uint16_t)(1u<<lane);
+        if((sloop_bt_mix.mute&bit) || (sloop_bt_mix.solo && !(sloop_bt_mix.solo&bit)))
+            g=0;
+        sloop_bt_target_q15[k]=(uint16_t)(g==127u?32767u:g*258u);
+    }
+}
+static int32_t sloop_bt_voice_apply(uint32_t k,int32_t sample)
+{
+    int32_t gain=sloop_bt_voice_q15[k];
+    int32_t dif=(int32_t)sloop_bt_target_q15[k]-gain;
+    if(dif) {
+        /* Approximately 0.4 ms to most of the target at 44.1 kHz.
+         * Tiny residuals snap precisely to avoid a stuck non-unity gain.
+         */
+        if(dif > -16 && dif < 16) gain=sloop_bt_target_q15[k];
+        else gain+=dif/16;
+        sloop_bt_voice_q15[k]=(uint16_t)gain;
+    }
+    if(gain==32767)return sample;
+    if(!gain)return 0;
+    return mulq15(sample,gain);
+}
+#endif
+
 /* adds the drums into the dry mix and the reverb and delay sends; mono != 0: into mono instead, before
  * the pan and the sends (the SLICER, slicer.c slicer_drums, does those after it) */
 static inline void drums_mix(int32_t *ml, int32_t *mr, int32_t *rev, int32_t *dly, int32_t *mono, uint32_t n)
@@ -412,6 +451,9 @@ static inline void drums_mix(int32_t *ml, int32_t *mr, int32_t *rev, int32_t *dl
         }
         drums.tail -= drums.tail / 16 + (drums.tail > 0 ? 1 : drums.tail < 0 ? -1 : 0);
     }
+#if SLOOP_BT_DRUM_MIX
+    sloop_bt_voice_targets(); /* once per render block, not per sample */
+#endif
     for (k = 0; k < NDRUM; k++) {               /* synthesised voices: render, then as below */
         voice_t *v = &drums.v[k];
         uint32_t m = n < CTL ? n : CTL;             /* (the mix runs in blocks of CTL) */
