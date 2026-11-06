@@ -69,3 +69,33 @@ discard the current synth/drum engines.
 
 The current GitHub Pages flasher allows user-selected known-good
 packages but contains **no Bluetooth firmware release**.
+
+## Actual GitHub Actions target builds, 6 November 2026
+
+The `Experimental FM1 firmware compile` job now builds with a fresh
+JieLi compiler and AC79 SDK on GitHub Actions. This is a **real target
+compiler/linker pass** (not the host tests); the resulting flash
+packages are deliberately not published.
+
+| Variant | XIP image | APP_SLOT free | .data+.bss | Pool |
+| --- | ---: | ---: | ---: | ---: |
+| Original SLOOP, BT flags 0 | 571,820 B | 9,744 B | 59,340 B | 333,900 B |
+| SMC controls + menu + drum mix, NO BLE radio | 573,096 B | 8,468 B | 59,628 B | 333,900 B |
+
+The memory figures are from GitHub Actions run 42241395925. Both
+configurations passed the slot, RAM, lowram and pool linker checks.
+**These builds do not include the JieLi Bluetooth stack or establish a
+wireless connection.** Do not label or distribute them as SLOOP-BT
+firmware.
+
+The symbol report shows the largest functions include `ui_draw`
+(~35 KB), `ui_input` (~14.5 KB), `events_block` (~11 KB),
+`mix_block` (~11 KB), `ed_handle` (~10.7 KB). This is a first
+direction for investigating footprint, not approval to remove
+anything: audio DSP, OTA/recovery and projects must remain functional.
+
+Hortator's previous BLE-optimised builds add approximately 125 KB
+relative to its own baseline, far more than SLOOP's current 8.5 KB of
+XIP headroom. The radio integration therefore needs a substantial
+size/architecture redesign. A mere copy of the Hortator radio files
+is not a safe or successful FM1 build.
