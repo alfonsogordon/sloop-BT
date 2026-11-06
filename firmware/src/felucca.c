@@ -96,6 +96,9 @@ static sloop_bt_link_t sloop_bt_link; /* no radio driver yet; safe OFF state */
 #if SLOOP_BT_CONTROL
 #include "sloop_bt_control.c" /* main-loop SMC adapter; no BLE stack yet */
 #endif
+#if defined(SLOOP_BT_OPEN_MEASURE) && SLOOP_BT_OPEN_MEASURE
+#include "sloop_bt_open_measure.c" /* never package this test binary */
+#endif
 #ifndef FELUCCA_FLASH
 #define FELUCCA_FLASH 1          /* flash driver + storage.c */
 #endif
