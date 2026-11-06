@@ -210,6 +210,21 @@ BLE_API uint32_t ble_scan_list(const struct ble_scan_tab *t, uint8_t idx[BLE_SCA
     return n;
 }
 
+/* Discovery-only list: Hortator-style visibility of nearby named BLE advertisers.
+ * Keep ble_scan_list MIDI-only for existing callers and tests. */
+BLE_API uint32_t ble_scan_discovery_list(const struct ble_scan_tab *t, uint8_t idx[BLE_SCAN_N])
+{
+    uint32_t i,n=0,k;
+    for(i=0;i<BLE_SCAN_N;i++) {
+        if(!t->e[i].used || (!t->e[i].name[0] && !t->e[i].midi))continue;
+        for(k=n;k>0 && t->e[idx[k-1u]].order>t->e[i].order;k--)
+            idx[k]=idx[k-1u];
+        idx[k]=(uint8_t)i;
+        n++;
+    }
+    return n;
+}
+
 BLE_API uint32_t ble_scan_strength(uint16_t rssi)
 {
     /* RSSI dBm = 21 - (RSSI2 & 63) - T[(RSSI2 >> 8) & 63] (HW §3 0x138) with T not transcribed: a bigger fine part
