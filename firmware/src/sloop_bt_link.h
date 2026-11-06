@@ -35,6 +35,7 @@ typedef struct {
     uint8_t error;
     uint8_t target_addr[6], target_type;
     uint32_t due_ms;
+    uint32_t scan_reports, scan_kept, scan_bad, scan_ignored;
     sloop_bt_device_t devices[SLOOP_BT_DEVICES];
 } sloop_bt_link_t;
 static inline int sloop_bt_eq_addr(const uint8_t *a,const uint8_t *b)
