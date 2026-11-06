@@ -93,6 +93,13 @@ int main(void)
     assert(sloop_bt_mix.solo==0 && song.solo==0);
     note(0xe0u,0,100);
     assert(trk[0].p[P_LEVEL]==24);
+    /* A solo set on the FM1 before connection is not lost when BT drops. */
+    song.solo=1u;
+    sloop_bt_control_connect();
+    note(0x90u,0x08u,127u); /* remote unsolos original strip 1 */
+    assert(song.solo==0u);
+    sloop_bt_control_disconnect();
+    assert(song.solo==1u); /* restore original local solo */
     puts("SLOOP-BT firmware adapter tests passed");
     return 0;
 }
