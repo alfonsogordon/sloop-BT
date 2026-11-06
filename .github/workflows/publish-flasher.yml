@@ -26,8 +26,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Assemble static site
         run: |
-          mkdir -p site/mixer
+          mkdir -p site/mixer site/lab
           cp flasher/index.html site/index.html
+          cp flasher/lab.html site/lab/index.html
           cp mixer/index.html site/mixer/index.html
           cp web/fm1pkg.js web/fm1ota.js site/
           test ! -e site/*.fwsc
@@ -42,6 +43,19 @@ jobs:
           pathlib.Path('/tmp/sloop_bt_mixer.mjs').write_text(match.group(1))
           PY
           node --check /tmp/sloop_bt_mixer.mjs
+          python3 - <<'PY'
+          import re, pathlib
+          html=pathlib.Path('site/lab/index.html').read_text()
+          match=re.search(r'<script type="module">(.*?)</script>', html, re.S)
+          assert match, "lab flasher module script missing"
+          pathlib.Path('/tmp/sloop_bt_lab.mjs').write_text(match.group(1))
+          assert '6c2c201cec9a3cc63e35ab71c235ec4e833af180835be062557e81d3e5b18d22' in html
+          assert "preflightOK" in html and "LAB_SIZE = 610076" in html
+          assert "if(hash!==LAB_SHA)" in html
+          assert "FLASH UNTESTED" in html
+          assert "rfRisk" in html and "preflight" in html
+          PY
+          node --check /tmp/sloop_bt_lab.mjs
           cp site/fm1pkg.js /tmp/fm1pkg.mjs
           cp site/fm1ota.js /tmp/fm1ota.mjs
           node --check /tmp/fm1pkg.mjs
