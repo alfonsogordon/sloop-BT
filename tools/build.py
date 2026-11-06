@@ -366,9 +366,21 @@ def main():
         (OUT / "felucca.bin").unlink(missing_ok=True)
         for old_pkg in OUT.glob("*.fwsc"):
             old_pkg.unlink()
+        errors, notes = check(img, syms, dis, rt)
+        # Only XIP-slot overage is allowed in the oversized diagnostic.
+        # Every other boot, RAM, pool, vector and safety check is mandatory.
+        errors = [e for e in errors if not (e.startswith("image ") and
+                  "exceeds the app slot" in e)]
+        errors += mmio_check()
+        for n in notes:
+            print("  diagnostic ", n)
+        for e in errors:
+            print("  FAIL ", e)
         print(f"OPEN-STACK PROTOCOL MEASUREMENT ONLY: XIP {len(img)} B "
               f"({len(img) - APP_SLOT:+d} B over physical FM1 slot)")
         print("NO INSTALLABLE FIRMWARE OR PACKAGE GENERATED")
+        if errors:
+            raise SystemExit("measurement: non-XIP safety checks failed")
         return 0
     errors, notes = check(img, syms, dis, rt)
     hal_err = mmio_check()
