@@ -210,7 +210,9 @@ UI_SMALL static void fm1_main(void)
 #endif
     settings_init();
     lcd_init();
+#if SLOOP_BT_SPLASH
     sloop_splash();                                     /* the SLOOP logo (splash.c) */
+#endif
     if (felucca_dbg.magic != DBG_MAGIC) {
         memset(&felucca_dbg, 0, sizeof felucca_dbg);
         felucca_dbg.magic = DBG_MAGIC;
@@ -253,7 +255,9 @@ UI_SMALL static void fm1_main(void)
         panel_setup();                        /* OCT- + OCT+ held at power-on */
         settings_save();
     }
+#if SLOOP_BT_SPLASH
     fm1_delay_ms(900);                                  /* (the logo stays a moment) */
+#endif
     lcd_fill(0, 0, 240, 240, C_BLACK);
 
     healthy_since = fm1_ms;
