@@ -55,6 +55,8 @@ jobs:
           assert "if(hash!==LAB_SHA)" in html
           assert "FLASH UNTESTED" in html
           assert "rfRisk" in html and "preflight" in html
+          root=pathlib.Path('site/index.html').read_text()
+          assert "must be verified in the dedicated /lab/ flasher" in root
           PY
           node --check /tmp/sloop_bt_lab.mjs
           cp site/fm1pkg.js /tmp/fm1pkg.mjs
