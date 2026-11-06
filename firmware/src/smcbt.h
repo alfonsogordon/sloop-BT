@@ -41,7 +41,7 @@ typedef struct {
 } smcbt_state_t;
 
 /* On connecting, every fader must cross or reach its current software level. */
-static void smcbt_reset(smcbt_state_t *s, const uint8_t levels[SMCBT_TRACKS])
+static inline void smcbt_reset(smcbt_state_t *s, const uint8_t levels[SMCBT_TRACKS])
 {
     unsigned i;
     s->seen = s->picked = 0;
@@ -52,7 +52,7 @@ static void smcbt_reset(smcbt_state_t *s, const uint8_t levels[SMCBT_TRACKS])
 }
 
 /* Called if the firmware (rather than the controller) changed a level. */
-static void smcbt_level_changed(smcbt_state_t *s, unsigned track, uint8_t value)
+static inline void smcbt_level_changed(smcbt_state_t *s, unsigned track, uint8_t value)
 {
     if (track >= SMCBT_TRACKS) return;
     if (value > 127u) value = 127u;
@@ -65,7 +65,7 @@ static void smcbt_level_changed(smcbt_state_t *s, unsigned track, uint8_t value)
 /* 1 = usable action, 0 = ignored or waiting for pickup.
  * The MIDI adapter supplies status, data1 and data2, not BLE packets.
  */
-static int smcbt_midi(smcbt_state_t *s, uint8_t status, uint8_t d1, uint8_t d2,
+static inline int smcbt_midi(smcbt_state_t *s, uint8_t status, uint8_t d1, uint8_t d2,
                       smcbt_event_t *ev)
 {
     unsigned ch = status & 15u, type = status & 0xf0u;
