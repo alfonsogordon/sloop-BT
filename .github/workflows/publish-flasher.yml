@@ -12,6 +12,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 concurrency:
@@ -34,6 +35,29 @@ jobs:
           cp web/fm1pkg.js web/fm1ota.js site/
           test ! -e site/*.fwsc
           grep -q 'local firmware package' site/index.html
+      - name: Retrieve exact pinned firmware from successful verified lab build
+        uses: actions/download-artifact@v4
+        with:
+          name: UNTESTED-SLOOP-BT-requires-SWD-recovery
+          run-id: 42304679110
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: alfonsogordon/sloop-BT
+          path: candidate
+      - name: Verify pinned firmware before placing on site
+        run: |
+          set -eu
+          test -s candidate/sloop-bt-optimist-lab-UNTESTED.fwsc
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          file=Path('candidate/sloop-bt-optimist-lab-UNTESTED.fwsc')
+          data=file.read_bytes()
+          expected='96b192869ca45abdcb364ca1f6fbaf89819776553a0df2b330a5c238f6fe2ab1'
+          assert len(data)==610076, 'Unexpected firmware length'
+          assert hashlib.sha256(data).hexdigest()==expected, 'Firmware SHA-256 mismatch'
+          Path('site/lab/firmware.fwsc').write_bytes(data)
+          print('Exact pinned firmware checked and staged for HTTPS fetch')
+          PY
       - name: Basic JavaScript syntax checks
         run: |
           python3 - <<'PY'
@@ -51,6 +75,8 @@ jobs:
           assert match, "lab flasher module script missing"
           pathlib.Path('/tmp/sloop_bt_lab.mjs').write_text(match.group(1))
           assert '96b192869ca45abdcb364ca1f6fbaf89819776553a0df2b330a5c238f6fe2ab1' in html
+          assert "fetch('./firmware.fwsc'" in html
+          assert 'input type="file"' not in html
           assert "preflightOK" in html and "LAB_SIZE = 610076" in html
           assert "if(hash!==LAB_SHA)" in html
           assert "FLASH UNTESTED" in html
