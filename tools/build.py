@@ -185,7 +185,7 @@ def build_app():
                  "FELUCCA_ICONS", "FELUCCA_SLICE", "FELUCCA_CPU1", "FELUCCA_LOGO_TEXT",
                  "FELUCCA_UAC", "FELUCCA_UAC_48K",
                  "SLOOP_BT_CONTROL", "SLOOP_BT_DRUM_MIX", "SLOOP_BT_VISUALIZER", "SLOOP_BT_OPEN_MEASURE",
-                 "SLOOP_BT_RADIO_MEASURE"):
+                 "SLOOP_BT_RADIO_MEASURE", "SLOOP_BT_SPLASH"):
         v = os.environ.get(flag)    # unset: the default in firmware/src/felucca.c
         if v in ("0", "1"):
             flags.append(f"-D{flag}={v}")
