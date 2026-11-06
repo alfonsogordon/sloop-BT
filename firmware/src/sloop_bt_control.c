@@ -6,8 +6,19 @@
  */
 #include "sloop_bt_dispatch.h"
 #include "smcbt_leds.h"
-#include "sloop_bt_ble/ble_midi.c" /* Hortator GPL BLE-MIDI byte protocol; single SLOOP TU */
+/* The Optimist radio stack supplies its own BLE-MIDI wire codec.
+ * Avoid linking a duplicate Hortator parser into the measured port.
+ * Legacy SLOOP-BT host tests keep their original BLE codec.
+ */
+#if defined(SLOOP_BT_OPEN_MEASURE) && SLOOP_BT_OPEN_MEASURE
+#define SLOOP_BT_USE_OPTIMIST 1
+#else
+#define SLOOP_BT_USE_OPTIMIST 0
+#endif
+#if !SLOOP_BT_USE_OPTIMIST
+#include "sloop_bt_ble/ble_midi.c"
 static ble_midi_t sloop_bt_ble_in;
+#endif
 
 static smcbt_state_t sloop_bt_controller;
 static uint8_t sloop_bt_connected;
@@ -33,7 +44,9 @@ static void sloop_bt_control_connect(void)
     smcbt_reset(&sloop_bt_controller,level);
     sloop_bt_solo_initial=song.solo;
     sloop_bt_solo_touched=0;
+#if !SLOOP_BT_USE_OPTIMIST
     ble_midi_reset(&sloop_bt_ble_in);
+#endif
     smcbt_led_reset(&sloop_bt_leds);
     sloop_bt_connected=1u;
 }
@@ -144,6 +157,7 @@ static void sloop_bt_midi_usb_packet(uint32_t p)
  * loop after subscription. Decode a standard BLE-MIDI notification
  * and hand messages to the controller dispatcher. Not a radio driver.
  */
+#if !SLOOP_BT_USE_OPTIMIST
 static void sloop_bt_ble_packet(void *ctx,uint32_t packet)
 {
     (void)ctx;
@@ -155,6 +169,7 @@ static void sloop_bt_ble_notification(const uint8_t *payload,uint32_t length)
     if(!sloop_bt_connected)return;
     ble_midi_parse(&sloop_bt_ble_in,payload,length,sloop_bt_ble_packet,0);
 }
+#endif
 /* The four synth/drum bus level faders and four drum-lane faders must
  * re-pick when their values change at the device (knobs, load, editor).
  * Called once per main-loop frame, not during the audio render.
@@ -201,6 +216,7 @@ static void sloop_bt_control_led_status(smcbt_led_status_t *out)
  * crucially, do NOT mark it delivered unless the queue accepted it.
  * This is main-loop code only, never called by the audio interrupt.
  */
+#if !SLOOP_BT_USE_OPTIMIST
 static uint32_t sloop_bt_led_packet(uint32_t timestamp_ms,uint8_t out[8],unsigned *index)
 {
     smcbt_led_status_t status;
@@ -215,6 +231,7 @@ static uint32_t sloop_bt_led_packet(uint32_t timestamp_ms,uint8_t out[8],unsigne
     midi[0][2]=msg.velocity;
     return ble_midi_pack(midi,lengths,1,timestamp_ms,out,8u,&taken);
 }
+#endif
 static void sloop_bt_led_queued(unsigned index,uint8_t on)
 {
     smcbt_led_msg_t msg;
