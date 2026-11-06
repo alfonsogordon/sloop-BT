@@ -11,15 +11,37 @@ enum { MI_COLOR, MI_ZOOM, MI_ACCEL, MI_LIGHTS, MI_KEYS, MI_NOTES, MI_LOWCUT, MI_
 #if FELUCCA_CDC
        MI_SERIAL,
 #endif
-       MI_RATE, MI_FRESO, MI_ADV, MI_DPREV, MI_CPU1, MI_PANEL, MI_LCLEAR, MI_ABOUT, MI_COUNT };
+       MI_RATE, MI_FRESO, MI_ADV, MI_DPREV, MI_CPU1, MI_PANEL, MI_LCLEAR, MI_ABOUT,
+#if SLOOP_BT_CONTROL
+       MI_BT_POWER, MI_BT_SCAN, MI_BT_DEVICE, MI_BT_STATUS,
+       MI_BT_LANE_A, MI_BT_LANE_B, MI_BT_LANE_C, MI_BT_LANE_D,
+#endif
+       MI_COUNT };
 static const char *const MI_NAME[MI_COUNT] = {"COLOR", "ZOOM", "KNOB ACCEL", "LIGHTS", "KEYS", "NOTES", "SPEAKER LOWCUT", "USB AUDIO",
 #if FELUCCA_CDC
                                               "USB SERIAL",
 #endif
-                                              "USB RATE", "FILTER RESO", "STEP ADVANCE", "DRUM PREVIEW", "2ND CORE", "HARDWARE CALIBRATION", "MIDI LEARN CLEAR", "ABOUT"};
-enum { MS_SCREEN, MS_LIGHTS, MS_AUDIO, MS_SEQ, MS_SYSTEM, MS_COUNT };   /* (2.7.1: SEQ) */
-static const char *const MS_NAME[MS_COUNT] = {"SCREEN", "LIGHTS", "AUDIO", "SEQ", "SYSTEM"};   /* (AUDIO: and USB) */
-static const uint8_t MS_FIRST[MS_COUNT + 1] = {MI_COLOR, MI_LIGHTS, MI_LOWCUT, MI_ADV, MI_CPU1, MI_COUNT};   /* rows of each */
+                                              "USB RATE", "FILTER RESO", "STEP ADVANCE", "DRUM PREVIEW", "2ND CORE", "HARDWARE CALIBRATION", "MIDI LEARN CLEAR", "ABOUT"
+#if SLOOP_BT_CONTROL
+                                              , "BLUETOOTH", "SCAN", "DEVICE", "STATUS",
+                                              "DRUM A", "DRUM B", "DRUM C", "DRUM D"
+#endif
+                                              };
+enum { MS_SCREEN, MS_LIGHTS, MS_AUDIO, MS_SEQ, MS_SYSTEM,
+#if SLOOP_BT_CONTROL
+       MS_BT, MS_BT_LANES,
+#endif
+       MS_COUNT };   /* (2.7.1: SEQ) */
+static const char *const MS_NAME[MS_COUNT] = {"SCREEN", "LIGHTS", "AUDIO", "SEQ", "SYSTEM"
+#if SLOOP_BT_CONTROL
+       , "BT", "DRUM BT"
+#endif
+};   /* (AUDIO: and USB) */
+static const uint8_t MS_FIRST[MS_COUNT + 1] = {MI_COLOR, MI_LIGHTS, MI_LOWCUT, MI_ADV, MI_CPU1,
+#if SLOOP_BT_CONTROL
+       MI_BT_POWER, MI_BT_LANE_A,
+#endif
+       MI_COUNT};   /* rows of each */
 
 UI_SMALL static int mi_cpu1_have(void)                      /* the second core is running (cpu1.c; the host tests have no cpu1.c) */
 {
@@ -67,6 +89,19 @@ UI_SMALL static const char *mi_value(uint32_t i, uint16_t *c)
         *c = lights_lvl ? C_HI : C_DIM;               /* (needs LIGHTS) */
         return KEYS_NAME[lights_keys % KEYS_N];
     case MI_NOTES: return lights_notes ? "ON" : "OFF";
+#if SLOOP_BT_CONTROL
+    case MI_BT_POWER: return "NOT BUILT";
+    case MI_BT_SCAN: return "NO RADIO";
+    case MI_BT_DEVICE:
+        if (sloop_bt_link.count && sloop_bt_link.selected < sloop_bt_link.count)
+            return sloop_bt_link.devices[sloop_bt_link.selected].name;
+        return "NONE";
+    case MI_BT_STATUS: return sloop_bt_link_status(&sloop_bt_link);
+    case MI_BT_LANE_A: case MI_BT_LANE_B: case MI_BT_LANE_C: case MI_BT_LANE_D: {
+        uint32_t k=i-MI_BT_LANE_A, lane=sloop_bt_mix.assignment[k];
+        return lane<DRUM_LANES ? LANE_NAME[lane] : "UNKNOWN";
+    }
+#endif
     case MI_LOWCUT: return settings.lowcut ? "ON" : "OFF";
     case MI_USB: return usb_full ? "FULL" : "MASTER";
 #if FELUCCA_CDC
@@ -111,7 +146,13 @@ UI_SMALL static void draw_menu(void)
     uint32_t sig = ui.menu * 7u + ui.menu_sel * 131u + settings.palette * 1009u + settings.lowcut * 7919u +
                    settings.zoom * 104729u + lights_lvl * 1299709u + lights_keys * 15485863u + ml_count() * 2654435u +
                    lights_notes * 32452843u + usb_full * 49979687u + usb_serial * 86028121u + usb_rate * 15486719u + theme_shown() * 32452867u + theme.crc + cpu1_off * 122949829u +
-                   knob_accel_off * 179424673u + drum_preview * 236887691u + step_adv_off * 373587883u + flt_reso * 512927357u;
+                   knob_accel_off * 179424673u + drum_preview * 236887691u + step_adv_off * 373587883u + flt_reso * 512927357u
+#if SLOOP_BT_CONTROL
+                    + sloop_bt_link.state * 4040101u + sloop_bt_link.count * 401009u +
+                    sloop_bt_mix.assignment[0] * 1301u + sloop_bt_mix.assignment[1] * 2909u +
+                    sloop_bt_mix.assignment[2] * 4519u + sloop_bt_mix.assignment[3] * 7919u
+#endif
+                    ;
     if (!ui.force && sig == ui.menu_sig)
         return;
     ui.menu_sig = sig;
@@ -163,6 +204,9 @@ UI_SMALL static void draw_menu(void)
         } else {
             int32_t x = 4;
             for (i = 0; i < MS_COUNT; i++) {        /* the sections as tabs: this one lit */
+#if SLOOP_BT_CONTROL
+                if ((i + 1u < sec) || (i > sec + 1u)) continue;
+#endif
                 int32_t w = text_w(&FONT_S, MS_NAME[i]);
                 if (i == sec)
                     cv_rect(x - 2, 3, w + 4, 18, C_LINE);
@@ -233,6 +277,23 @@ UI_SMALL static void menu_close(void)
 UI_SMALL static void mi_set(uint32_t i, int32_t s)
 {
     switch (i) {
+#if SLOOP_BT_CONTROL
+    case MI_BT_POWER: case MI_BT_SCAN: case MI_BT_DEVICE:
+        if (!s) ui_message("BLE DRIVER NOT READY");
+        break;
+    case MI_BT_STATUS:
+        break;
+    case MI_BT_LANE_A: case MI_BT_LANE_B: case MI_BT_LANE_C: case MI_BT_LANE_D: {
+        unsigned strip=(unsigned)(i-MI_BT_LANE_A)+4u;
+        unsigned current=sloop_bt_drum_strip_lane(&sloop_bt_mix,strip);
+        unsigned next=s>0 ? (current+1u)%DRUM_LANES :
+                      s<0 ? (current+DRUM_LANES-1u)%DRUM_LANES :
+                            (current+1u)%DRUM_LANES;
+        sloop_bt_drum_assign(&sloop_bt_mix,strip,next);
+        ui.force=1;
+        break;
+    }
+#endif
     case MI_COLOR: {                                   /* both ways round; OCT+ the next. 2.7: your theme after MONO
                                                         * (the palette number stays the last built-in one: an older
                                                         * SLOOP shows that) */
