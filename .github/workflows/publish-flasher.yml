@@ -49,7 +49,7 @@ jobs:
           match=re.search(r'<script type="module">(.*?)</script>', html, re.S)
           assert match, "lab flasher module script missing"
           pathlib.Path('/tmp/sloop_bt_lab.mjs').write_text(match.group(1))
-          assert '6c2c201cec9a3cc63e35ab71c235ec4e833af180835be062557e81d3e5b18d22' in html
+          assert '96b192869ca45abdcb364ca1f6fbaf89819776553a0df2b330a5c238f6fe2ab1' in html
           assert "preflightOK" in html and "LAB_SIZE = 610076" in html
           assert "if(hash!==LAB_SHA)" in html
           assert "FLASH UNTESTED" in html
