@@ -22,12 +22,19 @@ jobs:
           - variant: stub-radio
             radio: "0"
             splash: "1"
+            sizeopt: "0"
           - variant: real-radio-diagnostic
             radio: "1"
             splash: "1"
+            sizeopt: "0"
           - variant: real-radio-no-splash
             radio: "1"
             splash: "0"
+            sizeopt: "0"
+          - variant: real-radio-no-splash-oz
+            radio: "1"
+            splash: "0"
+            sizeopt: "1"
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
@@ -42,6 +49,7 @@ jobs:
           SLOOP_BT_OPEN_MEASURE: "1"
           SLOOP_BT_RADIO_MEASURE: ${{ matrix.radio }}
           SLOOP_BT_SPLASH: ${{ matrix.splash }}
+          SLOOP_BT_SIZE_OPT: ${{ matrix.sizeopt }}
           SLOOP_BT_CONTROL: "1"
           SLOOP_BT_DRUM_MIX: "1"
           SLOOP_BT_VISUALIZER: "0"
