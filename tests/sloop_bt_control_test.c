@@ -82,6 +82,18 @@ int main(void)
     assert((leds.rec&(1u<<7)) && leds.selected==7u);
     assert(smcbt_led_next(&sloop_bt_leds,&leds,&ledmsg,&index));
     smcbt_led_sent(&sloop_bt_leds,index,&ledmsg);
+    /* Verify outbound button LED is a BLE-MIDI notification and
+     * remains pending until transport ACK, then advances. */
+    {
+        uint8_t packet[8],again[8];
+        unsigned first,repeat,next;
+        uint32_t n=sloop_bt_led_packet(1000u,packet,&first);
+        assert(n==5u && packet[0]==(0x80u|(1000u>>7)));
+        assert(sloop_bt_led_packet(1000u,again,&repeat)==5u);
+        assert(first==repeat && packet[3]==again[3]);
+        sloop_bt_led_queued(first,packet[4]!=0u);
+        assert(sloop_bt_led_packet(1000u,again,&next)==5u && next!=first);
+    }
     /* An FM1 knob/edit changes gain: physical fader must re-pick. */
     trk[0].p[P_LEVEL]=25;
     sloop_bt_control_sync_levels();
