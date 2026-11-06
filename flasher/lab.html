@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SLOOP-BT | FM1 Web Flasher</title>
+<style>
+:root{color-scheme:dark;--bg:#0c0d13;--card:#191b26;--border:#36394a;--ink:#f3f4f7;--muted:#aeb2c4;--accent:#8d9dff;--good:#84dfb0;--warn:#ffca85}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#24213e,var(--bg) 65%);color:var(--ink);font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:780px;margin:0 auto;padding:45px 20px 70px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:30px;letter-spacing:-1.5px}.logo span{color:var(--accent)}
+.tag{font-size:12px;text-transform:uppercase;letter-spacing:.12em;border:1px solid var(--border);border-radius:30px;padding:5px 10px;color:var(--warn)}
+h1{font-size:clamp(25px,5vw,42px);line-height:1.14;margin:32px 0 14px;letter-spacing:-.04em}
+p{color:var(--muted)}strong{color:var(--ink)}a{color:#b9c3ff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:25px 0}
+.card{border:1px solid var(--border);background:var(--card);padding:22px;border-radius:15px;min-width:0}
+.card h2{font-size:18px;margin:0 0 10px}.card p{margin:0 0 12px}
+.card .action{display:inline-block;margin-top:10px}
+.full{grid-column:1/-1}.alert{border-left:3px solid var(--warn);padding:12px 15px;background:#28232a;color:#f7dcb7;border-radius:3px}
+label{display:block;color:var(--ink);font-weight:600;margin:16px 0 7px}
+input[type=file]{max-width:100%;padding:12px;border:1px dashed var(--border);border-radius:8px;background:#10121b;color:var(--ink);width:100%}
+button{cursor:pointer;border:0;border-radius:9px;background:var(--accent);padding:14px 18px;font:700 15px system-ui;color:#111325}
+button:disabled{opacity:.45;cursor:not-allowed}button.secondary{background:#353b56;color:var(--ink)}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}
+progress{width:100%;height:10px;margin:18px 0 0;accent-color:var(--good)}
+#status{color:var(--ink);min-height:2em}#details{font-size:13px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;min-height:2em}
+footer{font-size:13px;color:var(--muted);padding-top:25px;border-top:1px solid var(--border)}
+@media(max-width:580px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><div class="logo">SLOOP<span>–BT</span></div><span class="tag">UNTESTED lab firmware · SWD recovery required</span></div>
+<h1>SLOOP-BT FM1 Lab Web Flasher</h1>
+<p>Install a <strong>verified SLOOP-family</strong> firmware package from your own computer, directly over USB-MIDI in Chrome or Edge. This page uses SLOOP's existing updater protocol.</p>
+<div class="grid">
+<section class="card"><h2>Current stable SLOOP</h2><p>Use the original author's installer for normal, released SLOOP firmware.</p><a class="action" href="https://isod89.github.io/sloop-fm1/" target="_blank" rel="noopener">Open original SLOOP installer</a></section>
+<section class="card"><h2>Optimist BLE hardware test</h2><p>The firmware compiles, but RF calibration, BLE pairing and audio stability have NOT been physically verified. Do not flash without tested SWD recovery.</p><a class="action" href="https://github.com/alfonsogordon/sloop-BT/pull/1" target="_blank" rel="noopener">View development progress</a></section>
+<section class="card full">
+<h2>Verify exact lab firmware file</h2>
+<p>The firmware file stays in your browser. Nothing is uploaded to a server. Only the exact pinned SLOOP-BT lab build is accepted. An FM1 identity alone is not enough, and matching a SHA-256 does not prove safe hardware behaviour.</p>
+<div class="alert">Before flashing, back up projects and samples using the SLOOP web editor. Use a USB <strong>data</strong> cable and keep the FM1 connected until the update finishes. SWD recovery is required: USB rescue might not work after a failed radio firmware boot.</div>
+<label for="pkg">Choose firmware (.fwsc)</label>
+<input type="file" id="pkg" accept=".fwsc">
+<p id="details" aria-live="polite">No firmware selected.</p>
+<label style="font-weight:400"><input type="checkbox" id="confirm"> My FM1 projects are backed up and SWD hardware recovery has been verified.</label><label style="font-weight:400"><input type="checkbox" id="rfRisk"> I accept that Bluetooth radio startup has NEVER been tested on the FM1 hardware and may require SWD recovery.</label>
+<div class="controls"><button id="preflight" class="secondary" disabled>Read-only FM1 check</button><button id="install" disabled>Flash untested lab build</button><button id="reset" class="secondary">Clear selection</button></div>
+<progress id="progress" max="100" value="0"></progress>
+<p id="status" role="status" aria-live="polite">Select a package to begin.</p>
+<details><summary>Technical log</summary><pre id="log"></pre></details>
+</section>
+</div>
+<footer>
+<p><strong>Requirements:</strong> Chrome or Edge on a desktop OS with Web MIDI SysEx permission and a connected M-VAVE FM1. If the FM1 is already in SLOOP's OTA mode, the updater attempts to resume. An unsupported or foreign bootloader is rejected.</p>
+<p><a href="https://github.com/alfonsogordon/sloop-BT">SLOOP-BT source</a> · <a href="https://github.com/DeadActive/hortator">Hortator BLE reference</a> · <a href="https://isod89.github.io/sloop-fm1/webapp/editor/">SLOOP web editor / backup</a></p>
+<p>SLOOP-BT is independent, GPL-3.0-only, without warranty. M-VAVE and FM1 are trademarks of their owners.</p>
+</footer>
+</main>
+<script type="module">
+import { productOf, logicalImage, sha256hex } from './fm1pkg.js';
+import { Updater } from './fm1ota.js';
+const el = id => document.getElementById(id);
+let selected = null;
+let busy = false;
+function say(s) { el('status').textContent = s; }
+function log(s) { el('log').textContent += String(s) + '\n'; }
+function enable() { el('install').disabled = busy || !selected || !el('confirm').checked || !navigator.requestMIDIAccess; }
+function clear() { if(busy)return; selected=null; el('pkg').value=''; el('confirm').checked=false; el('details').textContent='No firmware selected.'; el('progress').value=0; say('Select a package to begin.'); enable(); }
+el('reset').addEventListener('click', clear);
+el('confirm').addEventListener('change', enable);
+el('pkg').addEventListener('change', async () => {
+  selected=null; enable();
+  const file=el('pkg').files?.[0];
+  if(!file){clear();return;}
+  try {
+    if(!/\.fwsc$/i.test(file.name))throw new Error('Choose a .fwsc package');
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (bytes.length < 1024 || bytes.length > 3_000_000) throw new Error('Unexpected package size');
+    const product=productOf(bytes);
+    if (!/^FM-1_9\d\d$/.test(product)) throw new Error('Not a SLOOP/Felucca-family FM1 package: ' + product);
+    const hash=await sha256hex(bytes);
+    selected={name:file.name,product,hash,image:logicalImage(bytes)};
+    el('details').textContent=file.name+'\nProduct: '+product+'\nSHA-256: '+hash+'\nSize: '+bytes.length.toLocaleString()+' bytes';
+    say('Package loaded. Verify its origin, confirm backup and click Install firmware.');
+  } catch(e) { el('details').textContent='Rejected: '+e.message; say('Invalid or unsupported package.'); }
+  enable();
+});
+window.addEventListener('beforeunload', e => { if(busy){e.preventDefault();e.returnValue='Firmware update in progress';} });
+el('install').addEventListener('click', async () => {
+  if(busy || !selected || !el('confirm').checked)return;
+  if(!window.confirm('Flash '+selected.name+' ('+selected.product+') to the FM1? Do not disconnect the USB cable.'))return;
+  busy=true;enable();el('progress').value=0;el('log').textContent='';
+  const pkg=selected;
+  try {
+    if(!navigator.requestMIDIAccess)throw new Error('Web MIDI unavailable; open with Chrome or Edge');
+    const midi=await navigator.requestMIDIAccess({sysex:true});
+    const updater=new Updater(midi,log);
+    const step=(k,n)=>{log(k+' '+(n??''));say({start:'Starting',verify:'Verifying package',loader:'Entering update mode',write:'Writing firmware',reboot:'Restarting',done:'Installation complete'}[k]||k);
+      if(k==='verify')el('progress').value=Math.min(20,20*(n||0)/74);
+      else if(k==='write')el('progress').value=Math.min(99,20+80*(n||0)/1179);
+      else if(k==='done')el('progress').value=100;};
+    const ota=await updater.find(id=>/^ota-/i.test(id.model),true);
+    if(ota){ota.link.close();const ok=await updater.resume(pkg.image,step);if(!ok)throw new Error('Update interrupted; reconnect and retry');}
+    else await updater.install(pkg.image,pkg.product,step);
+    say('Installation completed. Reconnect USB if the FM1 does not reappear.');
+  } catch(e){say('Update failed: '+(e.detail||e.message||e));log(e.stack||String(e));}
+  finally{busy=false;enable();}
+});
+if(!navigator.requestMIDIAccess) say('Web MIDI is unavailable here. Use Chrome or Edge in a secure context (HTTPS).');
+</script>
+</body>
+</html>
