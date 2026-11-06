@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only
- * SLOOP-BT: SMC-Mixer MIDI event decoder and four-strip fader pickup.
+ * SLOOP-BT: SMC-Mixer MIDI event decoder and eight-strip fader pickup.
  *
  * The SMC-Mixer in DAW mode sends faders as pitch bend on channels 1..8,
  * knobs as CC 16..23 on channel 1, and Mackie buttons as note-ons.
@@ -9,16 +9,20 @@
  * engine, sequencer and MIDI Learn are left unchanged.
  *
  * Wire format and pickup are based on DeadActive/hortator's GPL-3.0
- * firmware/src/smc.c, adapted for SLOOP's three synth tracks and drums.
+ * firmware/src/smc.c, adapted for SLOOP's three synth tracks, drum bus and four drum lanes.
  */
 #ifndef SLOOP_SMC_BT_H
 #define SLOOP_SMC_BT_H
 #include <stdint.h>
 
-#define SMCBT_TRACKS 4u
+#define SMCBT_TRACKS 8u
+#define SMCBT_SYNTH_TRACKS 3u
+/* Physical strips: 0-2 synth, 3 drum bus, 4-7 four drum lanes. */
+static const uint8_t smcbt_default_drum_lanes[4] = {0u, 2u, 4u, 3u}; /* kick, snare, hat, clap */
 enum smcbt_action {
     SMCBT_NONE = 0,
-    SMCBT_LEVEL,       /* track + 0..127 level, after pickup */
+    SMCBT_LEVEL,       /* track 0..2: synth level, 3: G_DRLVL drum bus */
+    SMCBT_DRUM_LEVEL,  /* track 4..7: velocity/gain for a chosen drum lane */
     SMCBT_MUTE,        /* toggle track's mute */
     SMCBT_SOLO,        /* toggle track's solo */
     SMCBT_SELECT,      /* select track */
@@ -82,7 +86,7 @@ static int smcbt_midi(smcbt_state_t *s, uint8_t status, uint8_t d1, uint8_t d2,
         }
         if (value == current) return 0;
         s->level[ch] = (uint8_t)value;
-        ev->kind = SMCBT_LEVEL;
+        ev->kind = ch < 4u ? SMCBT_LEVEL : SMCBT_DRUM_LEVEL;
         ev->track = (uint8_t)ch;
         ev->value = (uint8_t)value;
         return 1;
