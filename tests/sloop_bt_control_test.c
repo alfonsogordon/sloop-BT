@@ -61,6 +61,12 @@ int main(void)
         sloop_bt_ble_notification(notif,sizeof notif);
         assert(trk[2].p[P_MUTE]==1);
     }
+    /* Optimist native stack delivers packed USB-MIDI events instead of
+     * raw BLE attribute payload. Assert this takes the same route. */
+    sloop_bt_midi_usb_packet(9u | (0x90u<<8) | (0x16u<<16) | (127u<<24));
+    assert(sloop_bt_mix.mute==(1u<<2 | 1u<<4)); /* snare + hat */
+    sloop_bt_midi_usb_packet(0u | (0x90u<<8) | (0x11u<<16) | (127u<<24));
+    assert(trk[1].p[P_MUTE]==1); /* invalid CIN ignored */
     /* Solo row 0x08. */
     note(0x90u,0x0cu,127u);
     assert(sloop_bt_mix.solo==(1u<<0));
