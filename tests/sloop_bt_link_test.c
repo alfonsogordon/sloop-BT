@@ -39,6 +39,11 @@ int main(void)
     sloop_bt_link_tick(&l,3000);
     assert(l.state==SLOOP_BT_SCANNING);
     assert(sloop_bt_link_take(&l)==SLOOP_BT_START_SCAN);
+    sloop_bt_link_found(&l,b,1,-25,"Other keyboard");
+    assert(l.state==SLOOP_BT_SCANNING); /* not a saved address */
+    sloop_bt_link_found(&l,a,1,-45,"SMC-Mixer");
+    assert(l.state==SLOOP_BT_CONNECTING);
+    assert(sloop_bt_link_take(&l)==SLOOP_BT_CONNECT);
     sloop_bt_link_power(&l,0);
     assert(l.state==SLOOP_BT_OFF && !l.enabled);
     assert(sloop_bt_link_take(&l)==SLOOP_BT_STOP_RADIO);
