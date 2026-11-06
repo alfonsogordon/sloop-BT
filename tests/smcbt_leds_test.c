@@ -10,7 +10,7 @@ int main(void)
     smcbt_led_state_t leds;
     smcbt_led_status_t state = {0, 0, 0, 0, 0, 0};
     smcbt_led_msg_t msg;
-    unsigned i, index, sent = 0;
+    unsigned index, sent = 0;
     smcbt_led_reset(&leds);
     while (smcbt_led_next(&leds, &state, &msg, &index)) {
         assert(msg.status == 0x90u);
