@@ -46,7 +46,7 @@ BLE_API void ble_app_midi_in(uint32_t pkt,uint16_t timestamp,uint16_t last)
     /* Diagnostic stub: fake BLE interrupts do not run. Real hardware
      * MUST use a bounded FIFO and drain this on the main loop.
      */
-    sloop_bt_receive_midi((uint8_t)(pkt>>8),(uint8_t)(pkt>>16),(uint8_t)(pkt>>24));
+    sloop_bt_midi_usb_packet(pkt);
 }
 BLE_API void ble_app_state(void){sloop_bt_open_state_dirty=1;}
 
