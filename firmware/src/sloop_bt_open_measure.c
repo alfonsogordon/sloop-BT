@@ -75,6 +75,7 @@ static void (* volatile measured_cancel)(void)=ble_central_cancel;
 static int (* volatile measured_ready)(void)=ble_midi_ready;
 static uint8_t (* volatile measured_state)(void)=ble_central_state;
 static uint8_t (* volatile measured_fail)(void)=ble_central_fail;
+static volatile int sloop_bt_open_measure_sink;
 #if SLOOP_BT_RADIO_MEASURE
 /* These physical interrupt handlers are essential for RX, GATT,
  * subscriptions and the MIDI path. Retain them even though SLOOP
@@ -119,7 +120,6 @@ static __attribute__((noinline,used)) int sloop_bt_open_probe(void)
  * DCE cannot delete the entire Bluetooth codepath as unused. Never
  * present in a packaged build (the tool refuses to package this mode).
  */
-static volatile int sloop_bt_open_measure_sink;
 static void sloop_bt_open_measure_tick(void)
 {
     static uint8_t ran;
