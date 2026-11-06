@@ -8,7 +8,7 @@ if(!code)throw Error('lab module missing');
 const js=code.replace(/^import .*;\s*$/gm,'');
 const els=new Map(),handlers={};
 class Element{
-  constructor(id){this.id=id;this.checked=false;this.disabled=false;this.value='';this.textContent='';this.files=[];this.listeners={};}
+  constructor(id){this.id=id;this.checked=false;this.disabled=(id==='install'||id==='preflight');this.value='';this.textContent='';this.files=[];this.listeners={};}
   addEventListener(kind,fn){this.listeners[kind]=fn;}
   async dispatch(kind){return await this.listeners[kind]?.({preventDefault(){}});}
 }
