@@ -11,8 +11,27 @@
 #endif
 /* a host's own treatment of each drum voice before the mix (Kraken: a level, a pan, a filter per sound);
  * on the FM-1, nothing */
+#ifndef SLOOP_BT_DRUM_MIX
+#define SLOOP_BT_DRUM_MIX 0
+#endif
+#if SLOOP_BT_DRUM_MIX
+#include "sloop_bt_drums.h"
+/* 16 sound-lane gains, all unity until a controller changes them.
+ * Volatile writes originate from the UI / eventual Bluetooth service,
+ * reads from the existing drum render path in the audio interrupt.
+ * No project persistence or Bluetooth MIDI listener yet.
+ */
+static sloop_bt_drums_t sloop_bt_mix = {
+    .gain = {127,127,127,127,127,127,127,127,127,127,127,127,127,127,127,127},
+    .assignment = {0,2,4,3}
+};
+#endif
 #ifndef DRUM_VOICE_FX
+#if SLOOP_BT_DRUM_MIX
+#define DRUM_VOICE_FX(k, s) sloop_bt_drum_gain_sample(&sloop_bt_mix, lane_of_note(drums.v[k].note), (s))
+#else
 #define DRUM_VOICE_FX(k, s) (s)
+#endif
 #define DRUM_VOICE_GL(k, g) (g)
 #define DRUM_VOICE_GR(k, g) (g)
 #endif
