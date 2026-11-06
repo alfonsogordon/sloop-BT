@@ -60,6 +60,8 @@ BLE_API void ble_scan_add(struct ble_scan_tab *t, const uint8_t *pdu, uint32_t l
 BLE_API void ble_scan_age(struct ble_scan_tab *t, uint32_t now_ms);
 /* the listed devices (BLE-MIDI ones) in the list's order: their indexes into t->e -> how many */
 BLE_API uint32_t ble_scan_list(const struct ble_scan_tab *t, uint8_t idx[BLE_SCAN_N]);
+/* Diagnostic discovery: all named connectable BLE advertisers, plus unnamed confirmed MIDI. */
+BLE_API uint32_t ble_scan_discovery_list(const struct ble_scan_tab *t, uint8_t idx[BLE_SCAN_N]);
 /* relative signal bars of t->e[i] among the listed ones: 3 the strongest .. 1 the weakest (0: not listed) */
 BLE_API uint32_t ble_scan_bars(const struct ble_scan_tab *t, uint32_t i);
 /* a strength from the RSSI word (larger is stronger), with no gain table (HW §3 0x138, U9: [I]) */
