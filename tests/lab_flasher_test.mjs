@@ -33,7 +33,7 @@ const context={document:{getElementById:el},window:{isSecureContext:true,confirm
   location:{href:'https://alfonsogordon.github.io/sloop-BT/lab/',origin:'https://alfonsogordon.github.io'},
   URL,fetch:async()=>({ok:serverCode===200,status:serverCode,redirected:serverRedirect,
     url:'https://alfonsogordon.github.io/sloop-BT/lab/firmware.fwsc',
-    headers:{get:(key)=>key==='content-length'?'610076':null},
+    headers:{get:(key)=>key==='content-length'?'19890':null}, // compressed transfer size
     arrayBuffer:async()=>new Uint8Array(610076).buffer})};
 vm.runInNewContext(js,context,{filename:'flasher/lab.html'});
 function check(v,label){if(!v)throw Error('FAIL: '+label);console.log('PASS: '+label);}
@@ -45,7 +45,7 @@ check(el('install').disabled && el('preflight').disabled,'wrong hosted SHA block
 serverRedirect=true;hash=SHA;await el('load').dispatch('click');
 check(el('install').disabled,'redirected firmware response blocked');
 serverRedirect=false;await el('load').dispatch('click');
-check(!el('preflight').disabled && el('install').disabled,'valid pinned hosted SHA cannot bypass preflight');
+check(!el('preflight').disabled && el('install').disabled,'valid decoded firmware SHA is accepted even if HTTP Content-Length describes compressed transfer');
 el('confirm').checked=true;el('rfRisk').checked=true;
 el('confirm').dispatch('change');el('rfRisk').dispatch('change');
 check(el('install').disabled,'recovery consent alone cannot bypass preflight');
