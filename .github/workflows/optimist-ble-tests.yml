@@ -20,7 +20,7 @@ jobs:
           /tmp/optimist_ble_midi
       - name: Compile and test Optimist BLE scan parser
         run: |
-          cc -std=c99 -O2 -Wall -Wextra -Werror tests/optimist_ble_scan_test.c -o /tmp/optimist_ble_scan
+          cc -std=c99 -O2 -Wall -Wextra -Werror -DBLE_API= tests/optimist_ble_scan_test.c -o /tmp/optimist_ble_scan
           /tmp/optimist_ble_scan
       - name: Compile and test minimal-central BLE stack (no pairing)
         run: |
