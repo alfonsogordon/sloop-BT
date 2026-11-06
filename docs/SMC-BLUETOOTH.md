@@ -147,3 +147,32 @@ button columns, its event's `track` field represents the *physical
 strip*, not an index into `trk[]`. The integration bridge must
 translate strips >=4 into drum-lane targets and not dereference
 `trk[4]` or beyond.
+
+## 2026-11-06 implementation checkpoint
+
+Committed independent, host-tested control pieces:
+
+- `smcbt.h`: SMC Mackie DAW message decoder, 8 faders and soft takeover.
+- `smcbt_leds.h`: 35 changed-note LED messages with retry on full MIDI output.
+- `sloop_bt_drums.h`: 16 sound-lane levels/mute/solo, 4 assignable strips.
+- `sloop_bt_dispatch.h`: translation of physical strips into tracks 1-4
+  and individual drum lanes, transport, select, REC and knob callbacks.
+- `drums.c`: an optional `SLOOP_BT_DRUM_MIX=1` DSP hook after render
+  for both sampled and synthesised drum voices, default OFF in all
+  firmware builds. At default unity the hook returns exactly the same
+  sample. Validate CPU and smoothing before enabling in hardware.
+
+The dispatcher emits callbacks, but is **not yet connected to the real
+SLOOP UI**, the Bluetooth transport, or track persistence. The drum
+mixer holds runtime-only gain/mute/solo state; project saving and
+on-device assignment menus are not yet implemented.
+
+No verified FM1 BLE build exists at this checkpoint. The web flasher
+is separate and can use known-good user-supplied SLOOP packages after
+GitHub Pages is enabled; it does not ship unfinished Bluetooth firmware.
+
+**Unresolved performance risk:** applying 64-bit arithmetic and division
+to each drum voice sample could exceed the FM1's audio budget when the
+per-lane volume is non-unity. Before enabling the DSP hook, replace it
+with a measured fixed-point multiply / smoothed gain stage and run the
+golden-audio and CPU regression tests with realistic polyphonic drums.
