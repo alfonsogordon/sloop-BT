@@ -52,6 +52,16 @@ jobs:
           grep -q "WARNING: SLOOP-BT OPTIMIST LAB / HARDWARE UNTESTED" lab-build.log
           ! grep -q '^  FAIL ' lab-build.log
           sha256sum build/sloop-bt-optimist-lab-UNTESTED.fwsc | tee lab-sha256.txt
+      - name: Preserve new unreviewed diagnostic candidate for independent review
+        uses: actions/upload-artifact@v4
+        with:
+          name: UNREVIEWED-DIAGNOSTIC-DO-NOT-FLASH
+          path: |
+            build/sloop-bt-optimist-lab-UNTESTED.fwsc
+            lab-sha256.txt
+            lab-build.log
+          retention-days: 7
+          if-no-files-found: error
       - name: Verification 1 - independent exact package hash and identity
         run: |
           python3 - <<'PY'
