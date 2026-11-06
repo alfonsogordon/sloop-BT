@@ -23,22 +23,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - variant: stub-radio
-            radio: "0"
-            splash: "1"
-            sizeopt: "0"
           - variant: real-radio-diagnostic
             radio: "1"
             splash: "1"
             sizeopt: "0"
-          - variant: real-radio-no-splash
-            radio: "1"
-            splash: "0"
-            sizeopt: "0"
+            physical: "0"
           - variant: real-radio-no-splash-oz
             radio: "1"
             splash: "0"
             sizeopt: "1"
+            physical: "0"
+          - variant: real-radio-physical-oz
+            radio: "1"
+            splash: "0"
+            sizeopt: "1"
+            physical: "1"
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
@@ -47,13 +46,19 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq python3-pil git curl xz-utils
           sh tools/get_toolchain.sh "$HOME/.jieli"
-          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK"
-      - name: Compile Optimist minimal central with diagnostic linker only
+          for attempt in 1 2 3; do
+            git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK" && break
+            rm -rf "$HOME/fw-AC79_AIoT_SDK"
+            sleep 3
+          done
+          test -f "$HOME/fw-AC79_AIoT_SDK/cpu/wl82/tools/uboot.boot"
+      - name: Validate Optimist real-radio size (no firmware package)
         env:
           SLOOP_BT_OPEN_MEASURE: "1"
           SLOOP_BT_RADIO_MEASURE: ${{ matrix.radio }}
           SLOOP_BT_SPLASH: ${{ matrix.splash }}
           SLOOP_BT_SIZE_OPT: ${{ matrix.sizeopt }}
+          SLOOP_BT_PHYSICAL_FIT: ${{ matrix.physical }}
           SLOOP_BT_CONTROL: "1"
           SLOOP_BT_DRUM_MIX: "1"
           SLOOP_BT_VISUALIZER: "0"
