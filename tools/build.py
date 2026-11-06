@@ -179,10 +179,13 @@ def build_loader():
 
 def build_app():
     flags = [*CFLAGS, "-Ifirmware/hal", "-Ifirmware/src", "-Ibuild/gen"]
+    if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1":
+        flags.append("-Ithird_party/optimist_ble/hal")
     for flag in ("FELUCCA_FLASH", "FELUCCA_OTA", "FELUCCA_OTA_DRYRUN", "FELUCCA_CDC", "FELUCCA_UART",
                  "FELUCCA_ICONS", "FELUCCA_SLICE", "FELUCCA_CPU1", "FELUCCA_LOGO_TEXT",
                  "FELUCCA_UAC", "FELUCCA_UAC_48K",
-                 "SLOOP_BT_CONTROL", "SLOOP_BT_DRUM_MIX", "SLOOP_BT_VISUALIZER", "SLOOP_BT_OPEN_MEASURE"):
+                 "SLOOP_BT_CONTROL", "SLOOP_BT_DRUM_MIX", "SLOOP_BT_VISUALIZER", "SLOOP_BT_OPEN_MEASURE",
+                 "SLOOP_BT_RADIO_MEASURE"):
         v = os.environ.get(flag)    # unset: the default in firmware/src/felucca.c
         if v in ("0", "1"):
             flags.append(f"-D{flag}={v}")
