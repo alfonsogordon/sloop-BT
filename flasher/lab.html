@@ -39,6 +39,9 @@ footer{font-size:13px;color:var(--muted);padding-top:25px;border-top:1px solid v
 <section class="card"><h2>Optimist BLE hardware test</h2><p>The firmware compiles, but RF calibration, BLE pairing and audio stability have NOT been physically verified. Do not flash without tested SWD recovery.</p><a class="action" href="https://github.com/alfonsogordon/sloop-BT/pull/1" target="_blank" rel="noopener">View development progress</a></section>
 <section class="card full">
 <h2>Verify exact lab firmware file</h2>
+<p><a href="https://github.com/alfonsogordon/sloop-BT/actions/runs/42294251968" target="_blank" rel="noopener">Download the pinned, untested FM1 firmware artifact</a> (GitHub Actions → Artifacts). Extract <code>sloop-bt-optimist-lab-UNTESTED.fwsc</code>, then select it below.</p>
+<p>Expected SHA-256: <code>6c2c201cec9a3cc63e35ab71c235ec4e833af180835be062557e81d3e5b18d22</code></p>
+<p><a href="https://github.com/alfonsogordon/sloop-BT/blob/feature/smc-ble/docs/LAB-TEST.md" target="_blank" rel="noopener">Read the SWD backup and recovery checklist before proceeding</a>.</p>
 <p>The firmware file stays in your browser. Nothing is uploaded to a server. Only the exact pinned SLOOP-BT lab build is accepted. An FM1 identity alone is not enough, and matching a SHA-256 does not prove safe hardware behaviour.</p>
 <div class="alert">Before flashing, back up projects and samples using the SLOOP web editor. Use a USB <strong>data</strong> cable and keep the FM1 connected until the update finishes. SWD recovery is required: USB rescue might not work after a failed radio firmware boot.</div>
 <label for="pkg">Choose firmware (.fwsc)</label>
