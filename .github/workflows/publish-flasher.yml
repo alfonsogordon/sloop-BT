@@ -1,0 +1,44 @@
+name: Publish SLOOP-BT Web Flasher
+on:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - flasher/**
+      - web/fm1pkg.js
+      - web/fm1ota.js
+      - .github/workflows/publish-flasher.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages-sloop-bt
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble static site
+        run: |
+          mkdir -p site
+          cp flasher/index.html site/index.html
+          cp web/fm1pkg.js web/fm1ota.js site/
+          test ! -e site/*.fwsc
+          grep -q 'local firmware package' site/index.html
+      - name: Basic JavaScript syntax checks
+        run: |
+          cp site/fm1pkg.js /tmp/fm1pkg.mjs
+          cp site/fm1ota.js /tmp/fm1ota.mjs
+          node --check /tmp/fm1pkg.mjs
+          node --check /tmp/fm1ota.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
