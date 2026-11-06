@@ -228,5 +228,12 @@ static void ota_commit(const uint8_t *parm)
 #if FELUCCA_OTA
 #include "recovery.c"        /* early, polled USB updater; no synth or settings */
 #endif
+#ifndef SLOOP_BT_SPLASH
+#define SLOOP_BT_SPLASH 1 /* 0: omit decorative boot splash, keep all audio */
+#endif
+#if SLOOP_BT_SPLASH
 #include "splash.c"          /* SLOOP boot logo (build/gen/sloop_logo.h) */
+#else
+UI_SMALL static void sloop_splash(void) {}
+#endif
 #include "main.c"
