@@ -17,7 +17,8 @@ enum sloop_bt_state {
 };
 enum sloop_bt_error {
     SLOOP_BT_ERR_GENERIC, SLOOP_BT_ERR_PAIR_REQUIRED,
-    SLOOP_BT_ERR_NO_MIDI, SLOOP_BT_ERR_GATT, SLOOP_BT_ERR_LOST
+    SLOOP_BT_ERR_NO_MIDI, SLOOP_BT_ERR_GATT, SLOOP_BT_ERR_LOST,
+    SLOOP_BT_ERR_NO_RF_CAL
 };
 enum sloop_bt_intent {
     SLOOP_BT_DO_NOTHING, SLOOP_BT_START_RADIO, SLOOP_BT_STOP_RADIO,
@@ -36,6 +37,8 @@ typedef struct {
     uint8_t target_addr[6], target_type;
     uint32_t due_ms;
     uint32_t scan_reports, scan_kept, scan_bad, scan_ignored;
+    uint32_t scan_events, scan_irqs;
+    uint8_t rf_cal_state; /* 0 untested, 1 valid, 2 absent/invalid */
     sloop_bt_device_t devices[SLOOP_BT_DEVICES];
 } sloop_bt_link_t;
 static inline int sloop_bt_eq_addr(const uint8_t *a,const uint8_t *b)
@@ -183,6 +186,7 @@ static inline const char *sloop_bt_link_status(const sloop_bt_link_t *m)
         case SLOOP_BT_ERR_NO_MIDI: return "NOT BLE MIDI";
         case SLOOP_BT_ERR_GATT: return "GATT FAILED";
         case SLOOP_BT_ERR_LOST: return "LINK LOST";
+        case SLOOP_BT_ERR_NO_RF_CAL: return "NO RF CAL";
         default: break;
         }
     }

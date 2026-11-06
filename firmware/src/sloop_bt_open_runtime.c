@@ -13,14 +13,28 @@
 static struct ble_scan_tab sloop_bt_hw_scan;
 static uint8_t sloop_bt_hw_started;
 static uint32_t sloop_bt_hw_last_age;
+static struct ble_rf_trims sloop_bt_hw_trims;
 
-/* Optimist reference: device/bt_own.c OWN_TRIMS, with x187 measured by
- * the upstream RF calibration. No flash erase or VM write is performed.
- * Do not use outside a guarded bench test without unit-specific RF QA.
+/* Read-only flash hook provided by Felucca's flash driver, defined later
+ * in felucca.c. It reads at most 32 bytes per VM validation chunk.
+ * Never program/erase calibration: SLOOP may reuse the historical VM area.
  */
-static const struct ble_rf_trims sloop_bt_hw_trims = {
-    {0x0b,0x0b}, {1,7,4,7,11,1,7}, {0}, {0}
-};
+static int st_read(uint32_t off, void *dst, uint32_t n);
+static int sloop_bt_hw_vm_read(void *ctx,uint32_t off,uint8_t *dst,uint32_t n)
+{
+    (void)ctx;
+    if(n>32u || off<0x93000u || off>0x0fffffu || n>0x100000u-off)return -1;
+    return st_read(off,dst,n);
+}
+static uint8_t sloop_bt_hw_rf_validate(void)
+{
+    struct ble_vm_info info;
+    /* A valid *complete* RF record set and x187 internal CRC are mandatory.
+     * Never fall back to made-up RF trims, and never save to the VM region.
+     */
+    return (uint8_t)(ble_vm_scan(sloop_bt_hw_vm_read,0,&info,
+                                &sloop_bt_hw_trims,0,0)==1);
+}
 static void sloop_bt_hw_start(void)
 {
     /* Diagnostic only: locally-administered static random address.
@@ -37,6 +51,13 @@ static void sloop_bt_hw_start(void)
         sloop_bt_link_radio_ready(&sloop_bt_link);
         return;
     }
+    if(!sloop_bt_hw_rf_validate()) {
+        sloop_bt_link.rf_cal_state=2u;
+        sloop_bt_link.error=SLOOP_BT_ERR_NO_RF_CAL;
+        sloop_bt_link_failed(&sloop_bt_link);
+        return; /* fail closed: NO RF hardware access without verified trims */
+    }
+    sloop_bt_link.rf_cal_state=1u;
     ble_init(address,1u);
     fm1_irq_off();
     fm1_guard_unlock_top();
@@ -87,6 +108,12 @@ static void sloop_bt_hw_intent(void)
         }
         break;
     case SLOOP_BT_CONNECT:
+        /* Diagnostic build: do not initiate pairing or GATT until
+         * radio startup and the RX path are proven on physical FM1. */
+        sloop_bt_link.error=SLOOP_BT_ERR_GENERIC;
+        sloop_bt_link_failed(&sloop_bt_link);
+        break;
+#if 0 /* reserved for a future verified connection build */
         if(!sloop_bt_hw_started)break;
         ble_zero((uint8_t *)&peer,sizeof peer);
         ble_cpy(peer.addr,sloop_bt_link.target_addr,6);
@@ -94,6 +121,7 @@ static void sloop_bt_hw_intent(void)
         fm1_ble_irqs_hold(1);
         if(!ble_central_connect(&peer))sloop_bt_link_failed(&sloop_bt_link);
         fm1_ble_irqs_hold(0);
+#endif
         break;
     case SLOOP_BT_DISCONNECT:
         if(sloop_bt_hw_started) {
@@ -127,6 +155,8 @@ static void sloop_bt_hw_poll(uint32_t now_ms)
         sloop_bt_link.scan_kept=sloop_bt_hw_scan.kept;
         sloop_bt_link.scan_bad=sloop_bt_hw_scan.bad_ad;
         sloop_bt_link.scan_ignored=sloop_bt_hw_scan.ignored_type;
+        sloop_bt_link.scan_events=drv.scan_evts;
+        sloop_bt_link.scan_irqs=fm1_ble_crumb_irqs;
     }
     if(sloop_bt_link.state==SLOOP_BT_SCANNING) {
         n=ble_scan_discovery_list(&sloop_bt_hw_scan,indexes);

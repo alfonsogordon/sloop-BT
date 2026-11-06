@@ -109,6 +109,15 @@ UI_SMALL static const char *mi_value(uint32_t i, uint16_t *c)
         static char stats[32];
         if(sloop_bt_link.state!=SLOOP_BT_SCANNING)
             return sloop_bt_link_status(&sloop_bt_link);
+        /* Alternate the advertisement summary and radio/interrupt path.
+         * A running SCANNING UI alone does NOT prove that hardware works. */
+        if((fm1_ms / 4000u) & 1u) {
+            str_cpy(stats,"EV ",sizeof stats);
+            fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_events);
+            str_cpy(stats+str_len(stats)," IRQ ",sizeof stats-str_len(stats));
+            fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_irqs);
+            return stats;
+        }
         str_cpy(stats,"RX ",sizeof stats);
         fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_reports);
         str_cpy(stats+str_len(stats)," K",sizeof stats-str_len(stats));
@@ -170,6 +179,8 @@ UI_SMALL static void draw_menu(void)
 #if SLOOP_BT_CONTROL
                     + sloop_bt_link.state * 4040101u + sloop_bt_link.count * 401009u +
                     sloop_bt_link.scan_reports * 131u + sloop_bt_link.scan_kept * 37u + sloop_bt_link.scan_bad * 997u +
+                    sloop_bt_link.scan_events * 17u + sloop_bt_link.scan_irqs * 31u +
+                    ((sloop_bt_link.state==SLOOP_BT_SCANNING) ? (fm1_ms/4000u & 1u) * 1000003u : 0u) +
                     sloop_bt_mix.assignment[0] * 1301u + sloop_bt_mix.assignment[1] * 2909u +
                     sloop_bt_mix.assignment[2] * 4519u + sloop_bt_mix.assignment[3] * 7919u
 #endif
