@@ -12,6 +12,8 @@ on:
       - firmware/src/sloop_bt_control.c
       - firmware/src/sloop_bt_ble/ble_midi.c
       - firmware/src/sloop_bt_ble/ble_midi.h
+      - firmware/src/sloop_bt_ble/ble_scan.c
+      - firmware/src/sloop_bt_ble/ble_scan.h
       - firmware/src/sloop_bt_link.h
       - firmware/src/drums.c
       - tests/smcbt_test.c
@@ -20,6 +22,7 @@ on:
       - tests/sloop_bt_dispatch_test.c
       - tests/sloop_bt_control_test.c
       - tests/sloop_bt_ble_midi_test.c
+      - tests/sloop_bt_ble_scan_test.c
       - tests/sloop_bt_link_test.c
       - .github/workflows/smcbt-tests.yml
 jobs:
@@ -55,3 +58,7 @@ jobs:
         run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_link_test.c -o /tmp/sloop_bt_link_test
       - name: Check scan, device list, connection and reconnect pacing
         run: /tmp/sloop_bt_link_test
+      - name: Compile real BLE advertisement parser
+        run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_ble_scan_test.c -o /tmp/sloop_bt_ble_scan_test
+      - name: Exercise scan, SMC service UUID, RSSI ordering and malformed data
+        run: /tmp/sloop_bt_ble_scan_test
