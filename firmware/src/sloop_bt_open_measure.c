@@ -19,11 +19,18 @@
 #define BLE_DIAG 0         /* diagnostics are not part of the minimal build */
 #define BLE_DEVICE_NAME "SLOOP-BT"
 #define BLE_NAME_HEX 0
-#define FELUCCA_BLE_STUB 1 /* fake radio; protocol footprint only */
-/* Legacy Hortator decoder shares a generic header guard with Optimist.
- * Both codecs are standalone and use different type/function names. */
+/* Legacy Hortator decoder shares a generic header guard with Optimist. */
 #undef BLE_MIDI_H
+#ifndef SLOOP_BT_RADIO_MEASURE
+#define SLOOP_BT_RADIO_MEASURE 0
+#endif
+#if !SLOOP_BT_RADIO_MEASURE
+#define FELUCCA_BLE_STUB 1 /* fake radio; protocol footprint only */
+#endif
 #include "../../third_party/optimist_ble/ble_stack.c"
+#if SLOOP_BT_RADIO_MEASURE
+#include "../../third_party/optimist_ble/ble_vm.c" /* read-only RF calibration VM */
+#endif
 #include "sloop_bt_midi_ring.h"
 static sloop_bt_midi_ring_t sloop_bt_open_rx;
 
