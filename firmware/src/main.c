@@ -227,6 +227,9 @@ UI_SMALL static void fm1_main(void)
     fm1_input_init();
     fm1_adc_init();
     panel_init();
+#if SLOOP_BT_CONTROL
+    sloop_bt_link_reset(&sloop_bt_link); /* radio OFF every boot, never auto-start untested BLE */
+#endif
     felucca_init();
     cpu1_boot();                                        /* the second core: at power-on, before the audio and the
                                                          * timers (X0X: started later it never reaches its entry);
