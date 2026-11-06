@@ -335,6 +335,27 @@ def main():
     ap.add_argument("--sdk", type=Path, help="JieLi AC79 SDK checkout (default: $AC79_SDK)")
     a = ap.parse_args()
     name = "felucca.fwsc"
+    lab = os.environ.get("SLOOP_BT_LAB_PACKAGE") == "1"
+    if lab:
+        required = {
+            "SLOOP_BT_OPEN_MEASURE": "1",
+            "SLOOP_BT_PHYSICAL_FIT": "1",
+            "SLOOP_BT_RADIO_MEASURE": "1",
+            "SLOOP_BT_CONTROL": "1",
+            "SLOOP_BT_DRUM_MIX": "1",
+            "SLOOP_BT_SPLASH": "0",
+            "SLOOP_BT_SIZE_OPT": "1",
+            "SLOOP_BT_VISUALIZER": "0",
+            "FELUCCA_UAC": "0",
+            "FELUCCA_ICONS": "0",
+        }
+        wrong = [k for k,v in required.items() if os.environ.get(k) != v]
+        if wrong:
+            raise SystemExit("LAB PACKAGE: unsafe/missing required profile flags: " + ", ".join(wrong))
+        if a.release:
+            raise SystemExit("LAB PACKAGE: official release identity forbidden")
+        name = "sloop-bt-optimist-lab-UNTESTED.fwsc"
+        print("LAB PACKAGE REQUESTED: unverified FM1 radio; only for units with SWD recovery")
     if a.release:                   # one digit each: the identity has room for two
         m = re.fullmatch(r"(\d)\.(\d)(-[A-Za-z0-9]+)?", a.release)
         if not m:
@@ -360,9 +381,9 @@ def main():
         print("build: the flash is full: building again with the boot logo as text (FELUCCA_LOGO_TEXT=1, 4.6 KB less)")
         os.environ["FELUCCA_LOGO_TEXT"] = "1"
         img, syms, dis, rt = build_app()
-    if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1":
-        # This build must NEVER produce a flashable file. The oversize
-        # ELF is only for measuring compiler and memory requirements.
+    if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1" and not lab:
+        # Diagnostic-only: never produce a flashable file. The
+        # lab-package mode below is a separate, explicitly gated path.
         (OUT / "felucca.bin").unlink(missing_ok=True)
         for old_pkg in OUT.glob("*.fwsc"):
             old_pkg.unlink()
@@ -396,6 +417,10 @@ def main():
         raise SystemExit("build: checks failed")
     pkg = fm1pkg_make.ufw(fm1pkg_make.flash_image(img, fm1pkg_make.KEY), ota, PRODUCT)
     (OUT / name).write_bytes(pkg)
+    if lab:
+        print("WARNING: SLOOP-BT OPTIMIST LAB / HARDWARE UNTESTED")
+        print("Recovery equipment and original firmware backup required before flashing")
+        print("Bluetooth is OFF at boot; only manually enabled through experimental menu")
     att = SRC / "assets" / "samples-cc0" / "ATTRIBUTION.txt"
     if att.exists():
         shutil.copy(att, OUT / "ATTRIBUTION.txt")
