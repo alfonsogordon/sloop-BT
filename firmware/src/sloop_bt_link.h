@@ -106,6 +106,17 @@ static inline void sloop_bt_link_found(sloop_bt_link_t *m,const uint8_t addr[6],
     d->address_type=type;d->rssi=rssi;
     for(j=0;j<23u && name[j];j++)d->name[j]=name[j];
     d->name[j]=0;
+    /* After link loss, automatically reconnect ONLY to the previously
+     * selected controller. Never auto-pair with an arbitrary BLE device.
+     * The radio adapter consumes CONNECT after stopping its scan.
+     */
+    if(m->remembered && m->auto_reconnect &&
+       sloop_bt_eq_addr(m->target_addr,addr) &&
+       m->target_type==type) {
+        m->selected=(uint8_t)i;
+        m->state=SLOOP_BT_CONNECTING;
+        m->pending=SLOOP_BT_CONNECT;
+    }
 }
 static inline void sloop_bt_link_select(sloop_bt_link_t *m,unsigned idx)
 {
