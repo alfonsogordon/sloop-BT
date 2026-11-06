@@ -190,3 +190,42 @@ hardware driver or link-time BLE libraries are included by these flags,
 and compilation on the actual JieLi target has not been verified.
 The flags merely compile the controller/notification and optional drum
 DSP glue for sizing and integration work.
+
+## BLE link state and outbound feedback (latest)
+
+- `firmware/src/sloop_bt_link.h` is a pure C single-controller
+  connect model with radio OFF at boot, eight discovered devices,
+  address-based selection, connection/error states and paced retry.
+- A link loss retries at 2, 4, 8, then 16 seconds, and will attempt
+  connection **only** when the remembered BLE address reappears.
+- The model is not yet connected to the hardware BLE central driver
+  or on-device menu; those must drive the intent API on the main loop
+  and report real startup, scan and connection events.
+- `sloop_bt_led_packet()` in the actual firmware adapter builds an
+  outbound BLE-MIDI packet from the pending SMC LED state.
+  `sloop_bt_led_queued()` marks the change sent only after the future
+  radio output queue accepts it. No radio writes are currently present.
+- The controller adapter and BLE-MIDI codec have host tests covering
+  notifications, live mute/solo, faders, transport and LED packet
+  retry. The GitHub workflow is a host simulation, **not** a target
+  toolchain build or a hardware radio test.
+
+### Required for an end-to-end hardware test
+
+1. Adapt Hortator's `ble_os.c`, `ble_port.c`, `ble_central.c`,
+   `ble_scan.c`, `ble_gatt.c` and relevant HAL/SDK configuration
+   for a **single BLE central only**, pinned to its correct AC79 SDK.
+2. Wire scan results and ATT/GATT link events into
+   `sloop_bt_link.h`; execute scan/connect/disconnect intents.
+3. Call `sloop_bt_control_connect` on MIDI subscription and
+   `sloop_bt_control_disconnect` on link loss.
+4. Pass BLE-MIDI GATT notifications to
+   `sloop_bt_ble_notification`; enqueue
+   `sloop_bt_led_packet` and only then mark `sloop_bt_led_queued`.
+5. Connect on-device Bluetooth menus to the actual link state.
+6. Confirm XIP/RAM/pool capacity and test audio under stress.
+7. Release a browser-installable firmware package only after those
+   gates are passed.
+
+The web flasher's GitHub Pages workflow currently requires the repo
+owner to enable GitHub Actions as the Pages source.
