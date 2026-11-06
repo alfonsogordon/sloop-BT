@@ -74,7 +74,7 @@ static inline void sloop_bt_link_power(sloop_bt_link_t *m,int on)
 static inline void sloop_bt_link_radio_ready(sloop_bt_link_t *m)
 {
     if(m->enabled) {
-        m->state=SLOOP_BT_IDLE;
+        m->state=SLOOP_BT_SCANNING;
         m->pending=SLOOP_BT_START_SCAN;
         m->count=0;
     }
