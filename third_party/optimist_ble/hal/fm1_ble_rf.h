@@ -42,7 +42,7 @@
 #include "fm1_cc.h"
 #include "fm1_irq.h"
 #include "fm1_time.h"
-#include "ble_rf_tables.h"   /* build/gen: tools/build.py copies firmware/hal/ble_rf_tables_v15.h or a fresh capture there */
+#include "ble_rf_tables_v15.h"   /* build/gen: tools/build.py copies firmware/hal/ble_rf_tables_v15.h or a fresh capture there */
 
 #if !defined(BLE_RF_TABLES_FORMAT) || BLE_RF_TABLES_FORMAT != 3
 #error "build/gen/ble_rf_tables.h is from another tools/ble_rf_capture.py: capture it again or update ble_rf_tables_v15.h"
