@@ -79,7 +79,7 @@ static void sloop_bt_open_led_prepare(uint32_t now_ms)
     sloop_bt_open_out_time=now_ms;
     sloop_bt_open_out_led_index=(uint8_t)index;
     sloop_bt_open_out_led_on=(uint8_t)(msg.velocity!=0u);
-    __asm__ __volatile__("" ::: "memory");
+    SLOOP_BT_COMPILER_BARRIER();
     sloop_bt_open_out_pending=1;
 }
 
