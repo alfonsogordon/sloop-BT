@@ -1,0 +1,69 @@
+name: UNTESTED SLOOP-BT hardware lab firmware
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - .github/workflows/lab-firmware.yml
+permissions:
+  contents: read
+jobs:
+  lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies and pinned SDK
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq git curl xz-utils python3-pil
+          sh tools/get_toolchain.sh "$HOME/.jieli"
+          for attempt in 1 2 3; do
+            git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK" && break
+            rm -rf "$HOME/fw-AC79_AIoT_SDK"
+            sleep 3
+          done
+          test -f "$HOME/fw-AC79_AIoT_SDK/cpu/wl82/tools/uboot.boot"
+      - name: Compile physical-slot SLOOP-BT laboratory candidate
+        env:
+          SLOOP_BT_LAB_PACKAGE: "1"
+          SLOOP_BT_OPEN_MEASURE: "1"
+          SLOOP_BT_PHYSICAL_FIT: "1"
+          SLOOP_BT_RADIO_MEASURE: "1"
+          SLOOP_BT_CONTROL: "1"
+          SLOOP_BT_DRUM_MIX: "1"
+          SLOOP_BT_SPLASH: "0"
+          SLOOP_BT_SIZE_OPT: "1"
+          SLOOP_BT_VISUALIZER: "0"
+          FELUCCA_UAC: "0"
+          FELUCCA_ICONS: "0"
+          FELUCCA_LOGO_TEXT: "1"
+          FELUCCA_UART: "1"
+        run: |
+          set -o pipefail
+          sh build.sh 2>&1 | tee lab-build.log
+          test -s build/sloop-bt-optimist-lab-UNTESTED.fwsc
+          test -s build/felucca.bin
+          grep -q "WARNING: SLOOP-BT OPTIMIST LAB / HARDWARE UNTESTED" lab-build.log
+          ! grep -q '^  FAIL ' lab-build.log
+          sha256sum build/sloop-bt-optimist-lab-UNTESTED.fwsc | tee lab-sha256.txt
+      - name: Attach untested lab image, NOT a release
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: UNTESTED-SLOOP-BT-requires-SWD-recovery
+          path: |
+            build/sloop-bt-optimist-lab-UNTESTED.fwsc
+            lab-build.log
+            lab-sha256.txt
+            build/ATTRIBUTION.txt
+          retention-days: 7
+          if-no-files-found: error
+      - name: Preserve failed build logs only
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FAILED-lab-build-logs-no-firmware
+          path: lab-build.log
+          if-no-files-found: ignore
+          retention-days: 7
