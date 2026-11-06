@@ -55,6 +55,12 @@ int main(void)
     assert(sloop_bt_mix.mute==(1u<<2));
     note(0x90u,0x11u,127u);
     assert(trk[1].p[P_MUTE]==1);
+    /* The same path from an actual BLE-MIDI notification payload. */
+    {
+        const uint8_t notif[]={0x80,0x80,0x90,0x12,127};
+        sloop_bt_ble_notification(notif,sizeof notif);
+        assert(trk[2].p[P_MUTE]==1);
+    }
     /* Solo row 0x08. */
     note(0x90u,0x0cu,127u);
     assert(sloop_bt_mix.solo==(1u<<0));
