@@ -10,6 +10,8 @@ on:
       - firmware/src/ui_menu.c
       - third_party/optimist_ble/ble_scan.c
       - third_party/optimist_ble/ble_scan.h
+      - web/editor.html
+      - docs/webapp/editor/sloop-editor.html
 permissions:
   contents: read
 jobs:
