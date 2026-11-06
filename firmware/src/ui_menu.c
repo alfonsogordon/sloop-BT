@@ -13,7 +13,7 @@ enum { MI_COLOR, MI_ZOOM, MI_ACCEL, MI_LIGHTS, MI_KEYS, MI_NOTES, MI_LOWCUT, MI_
 #endif
        MI_RATE, MI_FRESO, MI_ADV, MI_DPREV, MI_CPU1, MI_PANEL, MI_LCLEAR, MI_ABOUT,
 #if SLOOP_BT_CONTROL
-       MI_BT_POWER, MI_BT_SCAN, MI_BT_DEVICE, MI_BT_STATUS, MI_BT_RECONNECT,
+       MI_BT_POWER, MI_BT_SCAN, MI_BT_DEVICE, MI_BT_STATUS,
        MI_BT_LANE_A, MI_BT_LANE_B, MI_BT_LANE_C, MI_BT_LANE_D,
 #endif
        MI_COUNT };
@@ -23,7 +23,7 @@ static const char *const MI_NAME[MI_COUNT] = {"COLOR", "ZOOM", "KNOB ACCEL", "LI
 #endif
                                               "USB RATE", "FILTER RESO", "STEP ADVANCE", "DRUM PREVIEW", "2ND CORE", "HARDWARE CALIBRATION", "MIDI LEARN CLEAR", "ABOUT"
 #if SLOOP_BT_CONTROL
-                                              , "BLUETOOTH", "SCAN", "DEVICE", "STATUS", "RECONNECT",
+                                              , "BLUETOOTH", "SCAN", "DEVICE", "STATUS",
                                               "DRUM A", "DRUM B", "DRUM C", "DRUM D"
 #endif
                                               };
@@ -101,7 +101,6 @@ UI_SMALL static const char *mi_value(uint32_t i, uint16_t *c)
         if (sloop_bt_link.count && sloop_bt_link.selected < sloop_bt_link.count)
             return sloop_bt_link.devices[sloop_bt_link.selected].name;
         return "NONE";
-    case MI_BT_RECONNECT: return sloop_bt_link.auto_reconnect ? "ON" : "OFF";
     case MI_BT_STATUS: return sloop_bt_link_status(&sloop_bt_link);
     case MI_BT_LANE_A: case MI_BT_LANE_B: case MI_BT_LANE_C: case MI_BT_LANE_D: {
         uint32_t k=i-MI_BT_LANE_A, lane=sloop_bt_mix.assignment[k];
@@ -311,11 +310,6 @@ UI_SMALL static void mi_set(uint32_t i, int32_t s)
         if (!s) ui_message("BLE DRIVER NOT READY");
         break;
 #endif
-    case MI_BT_RECONNECT:
-        sloop_bt_link.auto_reconnect=(uint8_t)(s>0 ? 1 : s<0 ? 0 :
-                                              !sloop_bt_link.auto_reconnect);
-        ui.force=1;
-        break;
     case MI_BT_STATUS:
         break;
     case MI_BT_LANE_A: case MI_BT_LANE_B: case MI_BT_LANE_C: case MI_BT_LANE_D: {
