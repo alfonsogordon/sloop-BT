@@ -48,7 +48,7 @@ int main(void)
     /* Fader 5 controls kick gain, fader 6 snare gain. */
     note(0xe4u,0,3);note(0xe4u,0,126);
     assert(sloop_bt_mix.gain[0]==126);
-    note(0xe5u,0,2);note(0xe5u,0,100);
+    note(0xe5u,0,2);note(0xe5u,0,127);note(0xe5u,0,100);
     assert(sloop_bt_mix.gain[2]==100);
     /* Row 0x10 = mute: strip 6 => snare, not trk[5]. */
     note(0x90u,0x15u,127u);
