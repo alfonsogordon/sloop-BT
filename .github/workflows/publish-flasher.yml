@@ -74,6 +74,12 @@ jobs:
         continue-on-error: true
         with:
           enablement: true
+      - name: Explain unavailable Pages hosting
+        if: steps.pages.outcome != 'success'
+        run: |
+          echo "::warning::GitHub Pages was not enabled. The lab flasher is built but NOT hosted. Repo owner must enable Settings > Pages > Source: GitHub Actions."
+          echo "## Pages not live" >> "$GITHUB_STEP_SUMMARY"
+          echo "Enable GitHub Pages at https://github.com/alfonsogordon/sloop-BT/settings/pages and re-run this workflow." >> "$GITHUB_STEP_SUMMARY"
       - if: steps.pages.outcome == 'success'
         uses: actions/upload-pages-artifact@v3
         with:
