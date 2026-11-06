@@ -74,8 +74,6 @@ jobs:
       - id: pages
         uses: actions/configure-pages@v5
         continue-on-error: true
-        with:
-          enablement: true
       - name: Explain unavailable Pages hosting
         if: steps.pages.outcome != 'success'
         run: |
