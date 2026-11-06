@@ -46,6 +46,12 @@ jobs:
           cp site/fm1ota.js /tmp/fm1ota.mjs
           node --check /tmp/fm1pkg.mjs
           node --check /tmp/fm1ota.mjs
+      - name: Downloadable offline test bundle (independent of Pages)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sloop-bt-web-test-bundle
+          path: site
+          retention-days: 30
       - uses: actions/configure-pages@v5
         with:
           enablement: true
