@@ -129,6 +129,17 @@ static void sloop_bt_receive_midi(uint8_t status,uint8_t d1,uint8_t d2)
     if(e.kind==SMCBT_DRUM_LEVEL||e.kind==SMCBT_MUTE||e.kind==SMCBT_SOLO)
         ui.force=1;
 }
+/* Native Optimist BLE stack uses packed USB-MIDI event words:
+ * CIN | status<<8 | data1<<16 | data2<<24. The radio's ISR must
+ * enqueue these to a bounded ring, and the main loop drains the ring
+ * through this function. Never run SLOOP UI work in the radio IRQ.
+ */
+static void sloop_bt_midi_usb_packet(uint32_t p)
+{
+    unsigned cin=p&15u;
+    if(cin<8u || cin>14u)return; /* SMC DAW: channel MIDI only */
+    sloop_bt_receive_midi((uint8_t)(p>>8),(uint8_t)(p>>16),(uint8_t)(p>>24));
+}
 /* BLE central adapter: only call from BLE service on SLOOP's main
  * loop after subscription. Decode a standard BLE-MIDI notification
  * and hand messages to the controller dispatcher. Not a radio driver.
