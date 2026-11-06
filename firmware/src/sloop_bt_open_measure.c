@@ -19,8 +19,6 @@
 #define BLE_DIAG 0         /* diagnostics are not part of the minimal build */
 #define BLE_DEVICE_NAME "SLOOP-BT"
 #define BLE_NAME_HEX 0
-/* Legacy Hortator decoder shares a generic header guard with Optimist. */
-#undef BLE_MIDI_H
 #ifndef SLOOP_BT_RADIO_MEASURE
 #define SLOOP_BT_RADIO_MEASURE 0
 #endif
@@ -38,7 +36,8 @@ static sloop_bt_midi_ring_t sloop_bt_open_rx;
  * exists. The radio stub produces no interrupts or real MIDI.
  */
 static uint32_t sloop_bt_open_out_pkt, sloop_bt_open_out_time;
-static uint8_t sloop_bt_open_out_pending;
+static volatile uint8_t sloop_bt_open_out_pending, sloop_bt_open_out_acked;
+static uint8_t sloop_bt_open_out_led_index, sloop_bt_open_out_led_on;
 static volatile uint8_t sloop_bt_open_state_dirty;
 
 BLE_API int ble_app_midi_peek(uint32_t *pkt,uint32_t *time)
@@ -48,7 +47,11 @@ BLE_API int ble_app_midi_peek(uint32_t *pkt,uint32_t *time)
     *time=sloop_bt_open_out_time;
     return 1;
 }
-BLE_API void ble_app_midi_pop(void) {sloop_bt_open_out_pending=0;}
+BLE_API void ble_app_midi_pop(void)
+{
+    sloop_bt_open_out_pending=0;
+    sloop_bt_open_out_acked=1; /* LED acknowledgement on main loop */
+}
 BLE_API void ble_app_midi_in(uint32_t pkt,uint16_t timestamp,uint16_t last)
 {
     (void)timestamp;(void)last;
@@ -58,6 +61,27 @@ BLE_API void ble_app_midi_in(uint32_t pkt,uint16_t timestamp,uint16_t last)
     (void)sloop_bt_midi_ring_push(&sloop_bt_open_rx,pkt);
 }
 BLE_API void ble_app_state(void){sloop_bt_open_state_dirty=1;}
+
+/* Queue one SMC LED output event in Optimist's native USB-MIDI word
+ * format. The BLE codec handles BLE packet framing itself.
+ * Called from main loop only; no SLOOP UI state touched in IRQ.
+ */
+static void sloop_bt_open_led_prepare(uint32_t now_ms)
+{
+    smcbt_led_status_t status;
+    smcbt_led_msg_t msg;
+    unsigned index;
+    if(!sloop_bt_connected || sloop_bt_open_out_pending)return;
+    sloop_bt_control_led_status(&status);
+    if(!smcbt_led_next(&sloop_bt_leds,&status,&msg,&index))return;
+    sloop_bt_open_out_pkt=9u|((uint32_t)msg.status<<8)|
+                          ((uint32_t)msg.note<<16)|((uint32_t)msg.velocity<<24);
+    sloop_bt_open_out_time=now_ms;
+    sloop_bt_open_out_led_index=(uint8_t)index;
+    sloop_bt_open_out_led_on=(uint8_t)(msg.velocity!=0u);
+    __asm__ __volatile__("" ::: "memory");
+    sloop_bt_open_out_pending=1;
+}
 
 /* Force retention of the central, scan, MIDI and outgoing feedback
  * paths for measurement, but never call this from the product build.
@@ -94,9 +118,6 @@ static __attribute__((noinline,used)) int sloop_bt_open_probe(void)
     static const uint8_t addr[6]={0x12,0x34,0x56,0x78,0x9a,0xc0};
     struct ble_peer peer;
     ble_zero((uint8_t *)&peer,sizeof peer);
-    uint8_t packet[8];
-    unsigned index=0;
-    uint32_t n;
     measured_init(addr,1);
     measured_enable(1);
     measured_scan(1);
@@ -110,14 +131,8 @@ static __attribute__((noinline,used)) int sloop_bt_open_probe(void)
                                 + (int)((uintptr_t)measured_irq_evt & 1u)
                                 + (int)((uintptr_t)measured_rf_start & 1u);
 #endif
-    n=sloop_bt_led_packet(0u,packet,&index);
-    if(n) {
-        sloop_bt_open_out_pkt=0x0990007fu;
-        sloop_bt_open_out_time=0u;
-        sloop_bt_open_out_pending=1;
-        return (int)n+(int)measured_state()+(int)measured_ready();
-    }
-    return (int)ble_connected()+(int)measured_fail();
+    return (int)ble_connected()+(int)measured_fail()
+          +(int)measured_state()+(int)measured_ready();
 }
 #endif
 
@@ -134,6 +149,23 @@ static void sloop_bt_open_measure_tick(void)
         sloop_bt_midi_ring_reset(&sloop_bt_open_rx);
         sloop_bt_open_measure_sink=sloop_bt_open_probe();
     }
+    if(sloop_bt_open_state_dirty) {
+        sloop_bt_open_state_dirty=0;
+        if(ble_midi_ready()) {
+            if(!sloop_bt_connected)sloop_bt_control_connect();
+        } else if(sloop_bt_connected) {
+            sloop_bt_control_disconnect();
+            sloop_bt_open_out_pending=0;
+        }
+    }
+    if(sloop_bt_open_out_acked) {
+        sloop_bt_open_out_acked=0;
+        sloop_bt_led_queued(sloop_bt_open_out_led_index,sloop_bt_open_out_led_on);
+    }
     for(i=0;i<16u && sloop_bt_midi_ring_pop(&sloop_bt_open_rx,&packet);i++)
         sloop_bt_midi_usb_packet(packet);
+    if(sloop_bt_connected) {
+        sloop_bt_control_sync_levels();
+        sloop_bt_open_led_prepare(fm1_ms);
+    }
 }
