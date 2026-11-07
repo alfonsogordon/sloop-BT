@@ -246,6 +246,19 @@ def build_app():
             img += b"\xff" * (load - APP_XIP - len(img))
             img += blob
     img += b"\xff" * (-len(img) % 4)
+    # A future JieLi port must leave headroom for the cooperative BT stacks,
+    # RF calibration, and mixer traffic without stealing the audio FX pool.
+    # Check both static memory regions before creating a flashable image.
+    if os.environ.get("SLOOP_BT_JIELI") == "1":
+        def symbol(name):
+            m = re.search(r"^([0-9a-f]+) .*\\s" + re.escape(name) + r"$", syms, re.M)
+            if not m:
+                raise SystemExit(f"JieLi memory gate: missing {name}")
+            return int(m.group(1), 16)
+        pool_spare = 0x54000 - (symbol("_pool_end") - symbol("_pool_start"))
+        ram_used = symbol("_bss_end") - 0x01C08000
+        if pool_spare < 8192 or ram_used > 94160:
+            raise SystemExit(f"JieLi memory gate: pool spare {pool_spare} B, RAM used {ram_used} B")
     (OUT / "felucca.bin").write_bytes(img)
     return bytes(img), syms, dis, rt
 
