@@ -1,0 +1,23 @@
+name: Verify JieLi V1.2.0 BLE SDK dependencies
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - tools/check_jieli_sdk_pins.py
+      - .github/workflows/jieli-sdk-pins.yml
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch Hortator-compatible AC79 SDK
+        run: |
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.0 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$RUNNER_TEMP/ac79-v120"
+      - name: Verify archive and config source SHA256 hashes
+        env:
+          AC79_BT_SDK: ${{ runner.temp }}/ac79-v120
+        run: python3 tools/check_jieli_sdk_pins.py
