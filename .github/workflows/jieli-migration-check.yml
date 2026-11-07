@@ -1,0 +1,21 @@
+name: JieLi BLE migration prerequisites (non-flashable)
+on:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - tools/check_jieli_migration.py
+      - tools/build.py
+      - firmware/app.ld
+      - docs/JIELI-BT-MIGRATION.md
+      - .github/workflows/lab-firmware.yml
+      - .github/workflows/jieli-migration-check.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prerequisites:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check migration preconditions without compiling or flashing
+        run: python3 tools/check_jieli_migration.py
