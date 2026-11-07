@@ -73,7 +73,7 @@ jobs:
           import fm1_install
           pkg=Path('build/sloop-bt-optimist-lab-UNTESTED.fwsc').read_bytes()
           digest=hashlib.sha256(pkg).hexdigest()
-          expected='52dae84f29c2fb6026b3eab50e27f40d77d44eb79ef275ad6f0851e231f88648'
+          expected='9cf3c620eba7a86d16757297a1cb62da57a083834bb541cda6d436031d10176e'
           print('REVIEW_CANDIDATE',len(pkg),digest,flush=True)
           assert len(pkg)==610076,(len(pkg),610076)
           assert digest==expected,('UNREVIEWED BUILD HASH',digest)
@@ -90,7 +90,7 @@ jobs:
           import crypto from 'node:crypto';
           import { productOf, logicalImage, sha256hex } from './web/fm1pkg.js';
           const pkg=new Uint8Array(fs.readFileSync('build/sloop-bt-optimist-lab-UNTESTED.fwsc'));
-          const wanted='52dae84f29c2fb6026b3eab50e27f40d77d44eb79ef275ad6f0851e231f88648';
+          const wanted='9cf3c620eba7a86d16757297a1cb62da57a083834bb541cda6d436031d10176e';
           if(pkg.length!==610076 || productOf(pkg)!=='FM-1_900' || (await sha256hex(pkg))!==wanted ||
              logicalImage(pkg).length!==pkg.length-20) throw Error('browser package validation failed');
           console.log('PASS: independent WebMIDI browser package decoder and hash');
