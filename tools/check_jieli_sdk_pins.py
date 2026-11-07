@@ -30,7 +30,7 @@ def main():
         path = root / name
         actual = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else "MISSING"
         good = actual == expected
-        print(("PASS" if good else "FAIL") + " " + name + (" (hash mismatch or missing)" if not good else ""))
+        print(("PASS" if good else "FAIL") + " " + name + (f" (size={path.stat().st_size if path.is_file() else 0}, sha256={actual})" if not good else ""))
         failures += not good
     if failures:
         raise SystemExit(f"FAIL: {failures} SDK inputs mismatch Hortator's pinned V1.2.0")
