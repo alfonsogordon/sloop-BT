@@ -112,6 +112,11 @@ jobs:
           assert 'scan_events=drv.scan_evts' in radio
           assert 'scan_irqs=sloop_bt_diag_rx_irqs' in radio
           assert 'scan_event_irqs=sloop_bt_diag_event_irqs' in radio
+          scanner=Path('third_party/optimist_ble/ble_hw_wl82_central.c').read_text()
+          assert 'hw_scan_zero_stat_valid' in scanner
+          assert 'st==0u && hw_scan_zero_stat_valid(b,type,n)' in scanner
+          assert 'if(type!=0u && type!=4u)return 0' in scanner
+          assert 'if(z>n-pos-1u)return 0' in scanner
           radio_driver=Path('third_party/optimist_ble/ble_hw_wl82.c').read_text()
           assert 'sloop_bt_diag_rx_irqs++' in radio_driver
           assert 'sloop_bt_diag_event_irqs++' in radio_driver
