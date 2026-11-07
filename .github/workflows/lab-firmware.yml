@@ -6,6 +6,9 @@ on:
     paths:
       - .github/workflows/lab-firmware.yml
       - firmware/src/sloop_bt_open_runtime.c
+      - firmware/src/sloop_bt_open_measure.c
+      - third_party/optimist_ble/ble_hw_wl82_central.c
+      - third_party/optimist_ble/ble_hw_wl82.c
       - firmware/src/sloop_bt_link.h
       - firmware/src/ui_menu.c
       - third_party/optimist_ble/ble_scan.c
@@ -51,6 +54,8 @@ jobs:
           sh build.sh 2>&1 | tee lab-build.log
           test -s build/sloop-bt-optimist-lab-UNTESTED.fwsc
           test -s build/felucca.bin
+          test -s build/felucca.elf
+          cp build/felucca.elf lab-felucca-symbols.elf
           grep -q "WARNING: SLOOP-BT OPTIMIST LAB / HARDWARE UNTESTED" lab-build.log
           ! grep -q '^  FAIL ' lab-build.log
           sha256sum build/sloop-bt-optimist-lab-UNTESTED.fwsc | tee lab-sha256.txt
@@ -62,6 +67,7 @@ jobs:
             build/sloop-bt-optimist-lab-UNTESTED.fwsc
             lab-sha256.txt
             lab-build.log
+            lab-felucca-symbols.elf
           retention-days: 7
           if-no-files-found: error
       - name: Verification 1 - independent exact package hash and identity
@@ -138,6 +144,7 @@ jobs:
             lab-build.log
             lab-sha256.txt
             build/ATTRIBUTION.txt
+            lab-felucca-symbols.elf
           retention-days: 7
           if-no-files-found: error
       - name: Preserve failed build logs only
