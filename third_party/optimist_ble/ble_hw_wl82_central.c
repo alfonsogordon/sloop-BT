@@ -131,6 +131,32 @@ static void hw_scan_backoff(uint8_t type)
     CB->format = (uint16_t)((CB->format & ~0x100u) | (drv.bo_count == 1u ? 0u : 0x100u));
 }
 
+/* Some FM1 WL82 advertising paths report a complete PDU with RXSTAT 0,
+ * despite an unchanged receive status field. Before accepting such a
+ * scan fallback, validate its advertising header, address, and the AD
+ * structure bounds. Never fabricate packets or skip the name/address
+ * check in the application connection gate.
+ */
+static int hw_scan_zero_stat_valid(uint32_t b,uint8_t type,uint8_t n)
+{
+    const uint8_t *p=bb.rx[b].buf + HW_SWHDR;
+    uint32_t pos=6u,i;
+    uint8_t any=0u;
+    if(type!=0u && type!=4u)return 0; /* ADV_IND / SCAN_RSP only */
+    if(n<6u || n>37u)return 0;
+    for(i=0;i<6u;i++)any|=p[i];
+    if(!any)return 0; /* must carry a nonzero AdvA */
+    while(pos<n) {
+        uint32_t z=p[pos];
+        if(!z) {
+            while(++pos<n)if(p[pos]!=0u)return 0;
+            return 1;
+        }
+        if(z>n-pos-1u)return 0;
+        pos+=z+1u;
+    }
+    return 1;
+}
 /* one report out of RX buffer b: header from RXAHDR / RXDHDR, status RXSTAT, RSSI2, the channel LASTCHMAP (HW §21.2) */
 static void hw_scan_take(uint32_t b)
 {
@@ -141,7 +167,8 @@ static void hw_scan_take(uint32_t b)
     BLE_DG(ble_dgs.last_dhdr = dh);
     BLE_DG(ble_dgs.last_rssi = rssi);
     BLE_DG(ble_dgs.last_ch = ch);
-    if ((st & 0xFu) != 1u) {
+    if ((st & 0xFu) != 1u &&
+        !(st==0u && hw_scan_zero_stat_valid(b,type,n))) {
         BLE_DG(ble_dgs.rx_bad_stat++);
         return;
     }
