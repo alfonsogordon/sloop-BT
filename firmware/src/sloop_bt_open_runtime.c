@@ -156,7 +156,10 @@ static void sloop_bt_hw_poll(uint32_t now_ms)
         sloop_bt_link.scan_bad=sloop_bt_hw_scan.bad_ad;
         sloop_bt_link.scan_ignored=sloop_bt_hw_scan.ignored_type;
         sloop_bt_link.scan_events=drv.scan_evts;
-        sloop_bt_link.scan_irqs=fm1_ble_crumb_irqs;
+        /* Never treat the persistent, uninitialised crash breadcrumb
+         * as a per-boot interrupt counter. */
+        sloop_bt_link.scan_irqs=sloop_bt_diag_rx_irqs;
+        sloop_bt_link.scan_event_irqs=sloop_bt_diag_event_irqs;
     }
     if(sloop_bt_link.state==SLOOP_BT_SCANNING) {
         n=ble_scan_discovery_list(&sloop_bt_hw_scan,indexes);

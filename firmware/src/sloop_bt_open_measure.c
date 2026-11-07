@@ -25,6 +25,12 @@
 #if !SLOOP_BT_RADIO_MEASURE
 #define FELUCCA_BLE_STUB 1 /* fake radio; protocol footprint only */
 #endif
+/* Per-boot diagnostics: unlike Optimist's crash breadcrumb in .noinit,
+ * these counters start at zero and track actual radio IRQ entries. */
+#if SLOOP_BT_RADIO_MEASURE
+static volatile uint32_t sloop_bt_diag_rx_irqs;
+static volatile uint32_t sloop_bt_diag_event_irqs;
+#endif
 #include "../../third_party/optimist_ble/ble_stack.c"
 #if SLOOP_BT_RADIO_MEASURE
 #include "../../third_party/optimist_ble/ble_vm.c" /* read-only RF calibration VM */

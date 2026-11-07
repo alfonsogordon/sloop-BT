@@ -1122,6 +1122,9 @@ static void hw_isr_end(uint32_t t0)
 
 void ble_wl82_rx_irq(void)              /* IRQ 29, via isr_ble_rx (hal/fm1_ble.h) */
 {
+#if defined(SLOOP_BT_RADIO_MEASURE) && SLOOP_BT_RADIO_MEASURE
+    sloop_bt_diag_rx_irqs++;
+#endif
     uint32_t t0 = fm1_ticks();
     uint8_t conn = drv.state == HW_CONN;  /* a connection RX interrupt: the TX service at its end (HW §8.2 point 3) */
     hwd.isr_t0 = t0;
@@ -1164,6 +1167,9 @@ void ble_wl82_rx_irq(void)              /* IRQ 29, via isr_ble_rx (hal/fm1_ble.h
 
 void ble_wl82_event_irq(void)           /* IRQ 45, via isr_ble_event */
 {
+#if defined(SLOOP_BT_RADIO_MEASURE) && SLOOP_BT_RADIO_MEASURE
+    sloop_bt_diag_event_irqs++;
+#endif
     uint32_t t0 = fm1_ticks();
     hwd.isr_t0 = t0;
     fm1_ble_crumb_irqs++;
