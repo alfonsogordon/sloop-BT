@@ -101,7 +101,7 @@ jobs:
           node --check /tmp/fm1pkg.mjs
           node --check /tmp/fm1ota.mjs
       - name: Simulate all lab flasher safety gates without a MIDI device
-        run: node tests/lab_flasher_test.mjs
+        run: LAB_FLASHER_HTML=site/lab/index.html node tests/lab_flasher_test.mjs
       - name: Downloadable offline test bundle (independent of Pages)
         uses: actions/upload-artifact@v4
         with:
