@@ -18,3 +18,12 @@ Goal: replace the experimental Optimist WL82 radio path with the JieLi SDK Bluet
 5. Only then publish an explicitly experimental hardware test with recovery path.
 
 **Status:** investigation only. No JieLi Bluetooth implementation has been linked or hardware-tested in SLOOP.
+
+## Additional source-verified integration details (2026-11-07)
+- Hortator's `firmware/src/ble/ble.c` includes `ble_os.c`, `ble_midi.c`, `ble_scan.c`, `ble_vm.c`, `ble_port.c`, `ble_gatt.c` and `ble_central.c` into a separate BLE compilation unit.
+- The BLE heap is **23,552 bytes**, allocated in `.pool`; source notes that **17,920 bytes was insufficient** in a two-link test. SLOOP's RAM layout must be checked before adopting it.
+- `ble_service()` processes a **5 ms Bluetooth task slice**, then connection state and MIDI queues. Its audio scheduler compatibility must be measured rather than assumed.
+- Startup diagnostics are retained in `.noinit`: stage, task, calibration, stalls, interrupt leakage, fatal reason, heap high-water and allocation failures. Preserve equivalent crash diagnostics in the port.
+- Hortator explicitly performs a flash **read** of RF trim before radio start; no Bluetooth start at boot.
+- Its `ble_rf_tables.c` contains Apache-2.0 SDK RF constants and a 256-row RF lookup table. The RF calibration is performed by the linked JieLi `wl_rf_common.a` library, not by SLOOP's Optimist binary-search routine.
+- Before changing any build pipeline, verify the target memory map and SDK archive hashes; do not replace existing lab firmware with a non-linking or untested port.
