@@ -39,7 +39,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: UNTESTED-SLOOP-BT-requires-SWD-recovery
-          run-id: 42311816356
+          run-id: 42315769837
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: alfonsogordon/sloop-BT
           path: candidate
@@ -52,7 +52,7 @@ jobs:
           found=list(Path('candidate').rglob('sloop-bt-optimist-lab-UNTESTED.fwsc'))
           assert len(found)==1, ('Expected one pinned firmware in Actions artifact',found)
           data=found[0].read_bytes()
-          expected='52dae84f29c2fb6026b3eab50e27f40d77d44eb79ef275ad6f0851e231f88648'
+          expected='e675c11b5c89d6b87941ed168b5cc04db17c6f8102228f71377101fbc18de0a3'
           assert len(data)==610076, 'Unexpected firmware length'
           assert hashlib.sha256(data).hexdigest()==expected, 'Firmware SHA-256 mismatch'
           Path('site/lab/firmware.fwsc').write_bytes(data)
@@ -74,7 +74,7 @@ jobs:
           match=re.search(r'<script type="module">(.*?)</script>', html, re.S)
           assert match, "lab flasher module script missing"
           pathlib.Path('/tmp/sloop_bt_lab.mjs').write_text(match.group(1))
-          assert '52dae84f29c2fb6026b3eab50e27f40d77d44eb79ef275ad6f0851e231f88648' in html
+          assert 'e675c11b5c89d6b87941ed168b5cc04db17c6f8102228f71377101fbc18de0a3' in html
           assert "fetch('./firmware.fwsc'" in html
           assert 'input type="file"' not in html
           assert "preflightOK" in html and "LAB_SIZE = 610076" in html
