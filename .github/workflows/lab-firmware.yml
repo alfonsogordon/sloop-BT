@@ -91,7 +91,7 @@ jobs:
           import crypto from 'node:crypto';
           import { productOf, logicalImage, sha256hex } from './web/fm1pkg.js';
           const pkg=new Uint8Array(fs.readFileSync('build/sloop-bt-optimist-lab-UNTESTED.fwsc'));
-          const wanted=fs.readFileSync('lab-sha256.txt','utf8').trim().split(/\\s+/)[0];
+          const wanted=fs.readFileSync('lab-sha256.txt','utf8').trim().split(/\s+/)[0];
           if(pkg.length!==610076 || productOf(pkg)!=='FM-1_900' || (await sha256hex(pkg))!==wanted ||
              logicalImage(pkg).length!==pkg.length-20) throw Error('browser package validation failed');
           console.log('PASS: independent WebMIDI browser package decoder and hash');
