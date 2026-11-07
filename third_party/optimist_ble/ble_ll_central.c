@@ -49,7 +49,7 @@ BLE_API void ble_ll_hw_adv_report(const uint8_t *pdu, uint8_t len, uint16_t rssi
     (void)ch;
     if (bll.state != LL_SCAN || len < 8u || len > LL_REP_MAX)
         return;
-    if (t != 0x0u && t != 0x4u) {
+    if (t != 0x0u && t != 0x4u && t != 0x6u) {
         BLE_DG(ble_dgs.rep_other++);
         return;
     }
