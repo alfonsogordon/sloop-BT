@@ -5,7 +5,7 @@
 #include "ble_host.h"                    /* BLE_UUID_MIDI_SVC */
 #include "ble_util.h"
 
-enum { SC_ADV_IND = 0, SC_SCAN_RSP = 4 };
+enum { SC_ADV_IND = 0, SC_SCAN_RSP = 4, SC_ADV_SCAN_IND = 6 };
 
 BLE_API void ble_ad_parse(const uint8_t *ad, uint32_t n, struct ble_ad *out)
 {
@@ -129,7 +129,7 @@ BLE_API void ble_scan_add(struct ble_scan_tab *t, const uint8_t *pdu, uint32_t l
     }
     type = (uint8_t)(pdu[0] & 0x0Fu);
     rnd = (uint8_t)(pdu[0] >> 6 & 1u);   /* TxAdd */
-    if (type != SC_ADV_IND && type != SC_SCAN_RSP) {
+    if (type != SC_ADV_IND && type != SC_SCAN_RSP && type != SC_ADV_SCAN_IND) {
         t->ignored_type++;               /* not connectable (or directed elsewhere): never a list entry */
         return;
     }
@@ -138,7 +138,7 @@ BLE_API void ble_scan_add(struct ble_scan_tab *t, const uint8_t *pdu, uint32_t l
         t->bad_ad++;
     i = sc_find(t, pdu + 2, rnd);
     if (i < 0) {
-        if (type != SC_ADV_IND)
+        if (type != SC_ADV_IND && type != SC_ADV_SCAN_IND)
             return;                      /* a scan response is only news about an advertiser already seen */
         i = sc_slot(t, ad.midi, now_ms);
         if (i < 0) {
