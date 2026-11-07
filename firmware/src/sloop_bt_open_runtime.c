@@ -107,22 +107,41 @@ static void sloop_bt_hw_intent(void)
             fm1_ble_irqs_hold(0);
         }
         break;
-    case SLOOP_BT_CONNECT:
-        /* Diagnostic build: do not initiate pairing or GATT until
-         * radio startup and the RX path are proven on physical FM1. */
-        sloop_bt_link.error=SLOOP_BT_ERR_GENERIC;
-        sloop_bt_link_failed(&sloop_bt_link);
-        break;
-#if 0 /* reserved for a future verified connection build */
-        if(!sloop_bt_hw_started)break;
+    case SLOOP_BT_CONNECT: {
+        /* Only a user-selected, actually discovered SMC-Mixer may be
+         * connected. No blind MAC guesses or synthetic advertisements.
+         * Never write flash or alter the unit's RF calibration.
+         */
+        uint8_t valid=0u;
+        uint32_t k;
+        if(!sloop_bt_hw_started || !sloop_bt_link.enabled)break;
+        for(k=0u;k<sloop_bt_link.count;k++) {
+            const sloop_bt_device_t *d=&sloop_bt_link.devices[k];
+            static const char smc[]="SMC-Mixer";
+            uint32_t j=0u;
+            if(d->address_type!=sloop_bt_link.target_type ||
+               !sloop_bt_eq_addr(d->address,sloop_bt_link.target_addr))
+                continue;
+            while(j<sizeof smc-1u && d->name[j]==smc[j])j++;
+            if(j==sizeof smc-1u && !d->name[j])valid=1u;
+            break;
+        }
+        if(!valid) {
+            sloop_bt_link.error=SLOOP_BT_ERR_GENERIC;
+            sloop_bt_link_failed(&sloop_bt_link);
+            break;
+        }
         ble_zero((uint8_t *)&peer,sizeof peer);
         ble_cpy(peer.addr,sloop_bt_link.target_addr,6);
         peer.addr_rand=sloop_bt_link.target_type;
         fm1_ble_irqs_hold(1);
-        if(!ble_central_connect(&peer))sloop_bt_link_failed(&sloop_bt_link);
+        if(!ble_central_connect(&peer)) {
+            sloop_bt_link.error=SLOOP_BT_ERR_GENERIC;
+            sloop_bt_link_failed(&sloop_bt_link);
+        }
         fm1_ble_irqs_hold(0);
-#endif
         break;
+    }
     case SLOOP_BT_DISCONNECT:
         if(sloop_bt_hw_started) {
             fm1_ble_irqs_hold(1);
