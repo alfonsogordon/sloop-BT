@@ -110,7 +110,14 @@ UI_SMALL static const char *mi_value(uint32_t i, uint16_t *c)
         if(sloop_bt_link.state!=SLOOP_BT_SCANNING)
             return sloop_bt_link_status(&sloop_bt_link);
         /* Rotate receive counts, IRQ and hardware enable/poll diagnostic. */
-        if((fm1_ms / 4000u) % 3u == 2u) {
+        if((fm1_ms / 4000u) % 4u == 3u) {
+            str_cpy(stats,"VCO ",sizeof stats);
+            fmt_int(stats+str_len(stats),sloop_bt_link.rf_scan_found);
+            str_cpy(stats+str_len(stats)," BAND ",sizeof stats-str_len(stats));
+            fmt_int(stats+str_len(stats),sloop_bt_link.rf_scan_band);
+            return stats;
+        }
+        if((fm1_ms / 4000u) % 4u == 2u) {
             str_cpy(stats,"EN ",sizeof stats);
             fmt_int(stats+str_len(stats),sloop_bt_link.scan_hw_ien);
             str_cpy(stats+str_len(stats)," PD ",sizeof stats-str_len(stats));
@@ -119,7 +126,7 @@ UI_SMALL static const char *mi_value(uint32_t i, uint16_t *c)
             fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_poll_hits);
             return stats;
         }
-        if((fm1_ms / 4000u) % 3u == 1u) {
+        if((fm1_ms / 4000u) % 4u == 1u) {
             str_cpy(stats,"EV ",sizeof stats);
             fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_events);
             str_cpy(stats+str_len(stats)," R ",sizeof stats-str_len(stats));
