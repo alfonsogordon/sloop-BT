@@ -58,18 +58,22 @@ static void sloop_bt_hw_start(void)
         return; /* fail closed: NO RF hardware access without verified trims */
     }
     sloop_bt_link.rf_cal_state=1u;
-    ble_init(address,1u);
+    /* Bring up RF before attaching/unmasking BLE interrupts. The previous
+     * order attached IRQ 29/45 before radio RAM and RF calibration existed,
+     * which could dispatch a stale interrupt on the first BT activation. */
     fm1_irq_off();
+    fm1_guard_unlock_top();
+    fm1_ble_irqs_hold(1);
+    fm1_guard_lock_top();
+    ble_init(address,1u);
+    ble_hw_wl82_start(&sloop_bt_hw_trims);
     fm1_guard_unlock_top();
     fm1_ble_irq_attach(BLE_HW_IRQ_PRIO); /* RX 29 / event 45 below audio */
     fm1_ble_irqs_hold(1);
     fm1_guard_lock_top();
-    fm1_irq_on();
-    /* Imported V15 RF path handles its own startup and VCO scan. */
-    ble_hw_wl82_start(&sloop_bt_hw_trims);
-    fm1_ble_irqs_hold(1);
     ble_enable(1);
     fm1_ble_irqs_hold(0);
+    fm1_irq_on();
     sloop_bt_hw_started=1;
     ble_scan_clear(&sloop_bt_hw_scan);
     sloop_bt_link_radio_ready(&sloop_bt_link);
