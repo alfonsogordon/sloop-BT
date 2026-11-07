@@ -1,0 +1,43 @@
+name: Locate Hortator-compatible JieLi SDK archive revisions
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/smc-ble]
+    paths: [.github/workflows/jieli-sdk-history.yml]
+permissions:
+  contents: read
+jobs:
+  history:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch SDK history (no firmware build)
+        run: |
+          git clone --filter=blob:none --depth 80 --single-branch --branch release/AC79NN_SDK_V1.2.0 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$RUNNER_TEMP/ac79-history"
+      - name: Match archive revisions to Hortator pins
+        env:
+          AC79_BT_SDK: ${{ runner.temp }}/ac79-history
+        run: |
+          python3 - <<'PY'
+          import hashlib, os, subprocess, sys
+          from pathlib import Path
+          sys.path.insert(0, "tools")
+          from check_jieli_sdk_pins import PINS
+          root=Path(os.environ["AC79_BT_SDK"])
+          def git(*args):
+              return subprocess.check_output(["git","-C",str(root),*args])
+          print("HEAD",git("rev-parse","HEAD").decode().strip(),flush=True)
+          print("SHALLOW",git("rev-parse","--is-shallow-repository").decode().strip(),flush=True)
+          for path,expected in PINS.items():
+              revisions=git("log","--format=%H","--",path).decode().splitlines()
+              print("CHECK",path,"revisions",len(revisions),flush=True)
+              found=False
+              for commit in revisions:
+                  data=git("show",commit+":"+path)
+                  if hashlib.sha256(data).hexdigest()==expected:
+                      print("MATCH",path,commit,flush=True)
+                      found=True
+                      break
+              if not found: print("NO MATCH IN HISTORY",path,flush=True)
+          PY

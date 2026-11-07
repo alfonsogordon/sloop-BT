@@ -1,0 +1,157 @@
+name: UNTESTED SLOOP-BT hardware lab firmware
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - .github/workflows/lab-firmware.yml
+      - firmware/src/sloop_bt_open_runtime.c
+      - firmware/src/sloop_bt_open_measure.c
+      - third_party/optimist_ble/ble_hw_wl82_central.c
+      - third_party/optimist_ble/ble_hw_wl82.c
+      - firmware/src/sloop_bt_link.h
+      - firmware/src/ui_menu.c
+      - third_party/optimist_ble/ble_scan.c
+      - third_party/optimist_ble/ble_scan.h
+      - web/editor.html
+      - docs/webapp/editor/sloop-editor.html
+permissions:
+  contents: read
+jobs:
+  lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies and pinned SDK
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq git curl xz-utils python3-pil
+          sh tools/get_toolchain.sh "$HOME/.jieli"
+          for attempt in 1 2 3; do
+            git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK" && break
+            rm -rf "$HOME/fw-AC79_AIoT_SDK"
+            sleep 3
+          done
+          test -f "$HOME/fw-AC79_AIoT_SDK/cpu/wl82/tools/uboot.boot"
+      - name: Compile physical-slot SLOOP-BT laboratory candidate
+        env:
+          SLOOP_BT_LAB_PACKAGE: "1"
+          SLOOP_BT_OPEN_MEASURE: "1"
+          SLOOP_BT_PHYSICAL_FIT: "1"
+          SLOOP_BT_RADIO_MEASURE: "1"
+          SLOOP_BT_CONTROL: "1"
+          SLOOP_BT_DRUM_MIX: "1"
+          SLOOP_BT_SPLASH: "0"
+          SLOOP_BT_SIZE_OPT: "1"
+          SLOOP_BT_VISUALIZER: "0"
+          FELUCCA_UAC: "0"
+          FELUCCA_ICONS: "0"
+          FELUCCA_LOGO_TEXT: "1"
+          FELUCCA_UART: "1"
+        run: |
+          set -o pipefail
+          sh build.sh 2>&1 | tee lab-build.log
+          test -s build/sloop-bt-optimist-lab-UNTESTED.fwsc
+          test -s build/felucca.bin
+          test -s build/felucca.elf
+          cp build/felucca.elf lab-felucca-symbols.elf
+          grep -q "WARNING: SLOOP-BT OPTIMIST LAB / HARDWARE UNTESTED" lab-build.log
+          ! grep -q '^  FAIL ' lab-build.log
+          sha256sum build/sloop-bt-optimist-lab-UNTESTED.fwsc | tee lab-sha256.txt
+      - name: Preserve new unreviewed diagnostic candidate for independent review
+        uses: actions/upload-artifact@v4
+        with:
+          name: UNREVIEWED-DIAGNOSTIC-DO-NOT-FLASH
+          path: |
+            build/sloop-bt-optimist-lab-UNTESTED.fwsc
+            lab-sha256.txt
+            lab-build.log
+            lab-felucca-symbols.elf
+          retention-days: 7
+          if-no-files-found: error
+      - name: Verification 1 - independent exact package hash and identity
+        run: |
+          python3 - <<'PY'
+          import hashlib,sys
+          from pathlib import Path
+          sys.path.insert(0,'tools')
+          import fm1_install
+          pkg=Path('build/sloop-bt-optimist-lab-UNTESTED.fwsc').read_bytes()
+          digest=hashlib.sha256(pkg).hexdigest()
+          expected=Path('lab-sha256.txt').read_text().split()[0]
+          assert len(expected)==64 and all(c in '0123456789abcdef' for c in expected)
+          print('REVIEW_CANDIDATE',len(pkg),digest,flush=True)
+          assert len(pkg)==610076,(len(pkg),610076)
+          assert digest==expected,('MISMATCH BETWEEN PACKAGE AND RECORDED HASH',digest,expected)
+          assert fm1_install.product_of(pkg)=='FM-1_900'
+          image=fm1_install.logical_image(pkg)
+          assert len(image)==len(pkg)-20
+          assert fm1_install.LOADER_MARK in image
+          print('PASS: verified exact lab package size, cryptographic digest, FM1 identity, loader marker and logical image')
+          PY
+      - name: Verification 2 - independent browser package parser
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          import { productOf, logicalImage, sha256hex } from './web/fm1pkg.js';
+          const pkg=new Uint8Array(fs.readFileSync('build/sloop-bt-optimist-lab-UNTESTED.fwsc'));
+          const wanted=fs.readFileSync('lab-sha256.txt','utf8').trim().split(/\s+/)[0];
+          if(pkg.length!==610076 || productOf(pkg)!=='FM-1_900' || (await sha256hex(pkg))!==wanted ||
+             logicalImage(pkg).length!==pkg.length-20) throw Error('browser package validation failed');
+          console.log('PASS: independent WebMIDI browser package decoder and hash');
+          JS
+      - name: Verification 2b - RF startup must fail closed, with no write to calibration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          radio=Path('firmware/src/sloop_bt_open_runtime.c').read_text()
+          ui=Path('firmware/src/ui_menu.c').read_text()
+          assert 'ble_vm_scan(sloop_bt_hw_vm_read' in radio
+          assert 'if(!sloop_bt_hw_rf_validate())' in radio
+          assert 'SLOOP_BT_ERR_NO_RF_CAL' in radio
+          assert 'ble_hw_wl82_start(&sloop_bt_hw_trims)' in radio
+          assert 'SLOOP_BT_CONNECT' in radio and 'ble_central_connect(&peer)' in radio
+          assert 'if(!valid)' in radio and 'sloop_bt_eq_addr(d->address,sloop_bt_link.target_addr)' in radio
+          assert 'static const char smc[]="SMC-Mixer"' in radio
+          assert 'scan_events=drv.scan_evts' in radio
+          assert 'scan_irqs=sloop_bt_diag_rx_irqs' in radio
+          assert 'scan_event_irqs=sloop_bt_diag_event_irqs' in radio
+          scanner=Path('third_party/optimist_ble/ble_hw_wl82_central.c').read_text()
+          assert 'hw_scan_zero_stat_valid' in scanner
+          assert 'st==0u && hw_scan_zero_stat_valid(b,type,n)' in scanner
+          assert 'if(type!=0u && type!=4u)return 0' in scanner
+          assert 'if(z>n-pos-1u)return 0' in scanner
+          radio_driver=Path('third_party/optimist_ble/ble_hw_wl82.c').read_text()
+          assert 'sloop_bt_diag_rx_irqs++' in radio_driver
+          assert 'sloop_bt_diag_event_irqs++' in radio_driver
+          assert '"EV "' in ui and '" R "' in ui and '"RX "' in ui
+          assert 'fl_erase' not in radio and 'fl_prog' not in radio
+          print('PASS: read-only RF validation, no calibration writes, discovered SMC-Mixer-only connection, IRQ/scan diagnostics')
+          PY
+      - name: Verification 3 - simulated FM1 OTA update and browser protocol
+        run: |
+          python3 tests/install_test.py
+          node web/test_web.mjs
+      - name: Attach untested lab image, NOT a release
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: UNTESTED-SLOOP-BT-requires-SWD-recovery
+          path: |
+            build/sloop-bt-optimist-lab-UNTESTED.fwsc
+            lab-build.log
+            lab-sha256.txt
+            build/ATTRIBUTION.txt
+            lab-felucca-symbols.elf
+          retention-days: 7
+          if-no-files-found: error
+      - name: Preserve failed build logs only
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FAILED-lab-build-logs-no-firmware
+          path: lab-build.log
+          if-no-files-found: ignore
+          retention-days: 7

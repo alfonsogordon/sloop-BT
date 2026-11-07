@@ -1,0 +1,28 @@
+name: Optimist BLE open-stack port tests
+on:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - third_party/optimist_ble/**
+      - tests/optimist_**
+      - .github/workflows/optimist-ble-tests.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  codec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and test Optimist BLE MIDI codec
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror tests/optimist_ble_midi_test.c -o /tmp/optimist_ble_midi
+          /tmp/optimist_ble_midi
+      - name: Compile and test Optimist BLE scan parser
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror tests/optimist_ble_scan_test.c -o /tmp/optimist_ble_scan
+          /tmp/optimist_ble_scan
+      - name: Compile and test minimal-central BLE stack (no pairing)
+        run: |
+          cc -std=c99 -O2 -DBLE_CENTRAL=3 -Wall -Wextra -Werror tests/optimist_ble_central_test.c -o /tmp/optimist_ble_central
+          /tmp/optimist_ble_central

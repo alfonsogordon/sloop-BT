@@ -19,6 +19,15 @@
 #include "gfx.c"
 #include "core.h"
 #include "cpu1.h"           /* the second core's job API (defined in cpu1.c; the host tests have their own) */
+#ifndef SLOOP_BT_CONTROL
+#define SLOOP_BT_CONTROL 0 /* experimental SMC hardware control bridge */
+#endif
+#ifndef SLOOP_BT_DRUM_MIX
+#define SLOOP_BT_DRUM_MIX 0 /* independent drum lane DSP, disabled in standard build */
+#endif
+#if SLOOP_BT_CONTROL && !SLOOP_BT_DRUM_MIX
+#error "SLOOP_BT_CONTROL requires SLOOP_BT_DRUM_MIX=1 (drum-lane state)"
+#endif
 #include "engines.c"
 #include "drums.c"
 #include "params.c"
@@ -65,10 +74,31 @@
 #include "ui_studio.c"
 #include "icons.c"           /* parameter icons (FELUCCA_ICONS), used by ui_draw.c */
 #include "ui_draw.c"
+#ifndef SLOOP_BT_VISUALIZER
+#define SLOOP_BT_VISUALIZER 1 /* experimental lean firmware may omit visual-only DSP */
+#endif
+#if SLOOP_BT_VISUALIZER
 #include "ui_vis.c"           /* the full-screen visualiser (HOME on HOME, 2.4) */
+#else
+/* Keep the UI input and drawing contracts; disable visuals, not sound. */
+static int vis_shown(void) { return 0; }
+static void vis_open(void) { vis_on=0; }
+static void vis_draw(void) {}
+static void vis_select(int32_t s) { (void)s; }
+#endif
+#if SLOOP_BT_CONTROL
+#include "sloop_bt_link.h"
+static sloop_bt_link_t sloop_bt_link; /* no radio driver yet; safe OFF state */
+#endif
 #include "ui_layers.c"       /* hold a function button: what the keys and knobs do (TE style) */
 #include "ui_menu.c"
 #include "ui_input.c"
+#if SLOOP_BT_CONTROL
+#include "sloop_bt_control.c" /* main-loop SMC adapter; no BLE stack yet */
+#endif
+#if defined(SLOOP_BT_OPEN_MEASURE) && SLOOP_BT_OPEN_MEASURE
+#include "sloop_bt_open_measure.c" /* never package this test binary */
+#endif
 #ifndef FELUCCA_FLASH
 #define FELUCCA_FLASH 1          /* flash driver + storage.c */
 #endif
@@ -198,5 +228,12 @@ static void ota_commit(const uint8_t *parm)
 #if FELUCCA_OTA
 #include "recovery.c"        /* early, polled USB updater; no synth or settings */
 #endif
+#ifndef SLOOP_BT_SPLASH
+#define SLOOP_BT_SPLASH 1 /* 0: omit decorative boot splash, keep all audio */
+#endif
+#if SLOOP_BT_SPLASH
 #include "splash.c"          /* SLOOP boot logo (build/gen/sloop_logo.h) */
+#else
+UI_SMALL static void sloop_splash(void) {}
+#endif
 #include "main.c"

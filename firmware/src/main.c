@@ -210,7 +210,9 @@ UI_SMALL static void fm1_main(void)
 #endif
     settings_init();
     lcd_init();
+#if SLOOP_BT_SPLASH
     sloop_splash();                                     /* the SLOOP logo (splash.c) */
+#endif
     if (felucca_dbg.magic != DBG_MAGIC) {
         memset(&felucca_dbg, 0, sizeof felucca_dbg);
         felucca_dbg.magic = DBG_MAGIC;
@@ -227,6 +229,9 @@ UI_SMALL static void fm1_main(void)
     fm1_input_init();
     fm1_adc_init();
     panel_init();
+#if SLOOP_BT_CONTROL
+    sloop_bt_link_reset(&sloop_bt_link); /* radio OFF every boot, never auto-start untested BLE */
+#endif
     felucca_init();
     cpu1_boot();                                        /* the second core: at power-on, before the audio and the
                                                          * timers (X0X: started later it never reaches its entry);
@@ -250,12 +255,17 @@ UI_SMALL static void fm1_main(void)
         panel_setup();                        /* OCT- + OCT+ held at power-on */
         settings_save();
     }
+#if SLOOP_BT_SPLASH
     fm1_delay_ms(900);                                  /* (the logo stays a moment) */
+#endif
     lcd_fill(0, 0, 240, 240, C_BLACK);
 
     healthy_since = fm1_ms;
     for (;;) {
         uint32_t m = fm1_ms;
+#if defined(SLOOP_BT_OPEN_MEASURE) && SLOOP_BT_OPEN_MEASURE
+        sloop_bt_open_measure_tick(); /* fake radio; nonflashable diagnostic only */
+#endif
         fm1_wdt_feed();
         usb_retry(fm1_ms);
         if ((uint32_t)(m - healthy_since) >= 30000u && bootguard.pending) {
@@ -348,6 +358,10 @@ UI_SMALL static void fm1_main(void)
         felucca_dbg.page = ui.page;
         felucca_dbg.home = ui.home;
         felucca_dbg.stage = 1;
+#if SLOOP_BT_CONTROL
+        if (sloop_bt_connected)
+            sloop_bt_control_sync_levels(); /* pick-up after FM1-side level changes */
+#endif
         ui_input();
         felucca_dbg.stage = 2;
         ui_leds();
