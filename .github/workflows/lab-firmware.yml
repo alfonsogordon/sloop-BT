@@ -106,7 +106,9 @@ jobs:
           assert 'if(!sloop_bt_hw_rf_validate())' in radio
           assert 'SLOOP_BT_ERR_NO_RF_CAL' in radio
           assert 'ble_hw_wl82_start(&sloop_bt_hw_trims)' in radio
-          assert 'SLOOP_BT_CONNECT' in radio and '#if 0 /* reserved' in radio
+          assert 'SLOOP_BT_CONNECT' in radio and 'ble_central_connect(&peer)' in radio
+          assert 'if(!valid)' in radio and 'sloop_bt_eq_addr(d->address,sloop_bt_link.target_addr)' in radio
+          assert 'static const char smc[]="SMC-Mixer"' in radio
           assert 'scan_events=drv.scan_evts' in radio
           assert 'scan_irqs=sloop_bt_diag_rx_irqs' in radio
           assert 'scan_event_irqs=sloop_bt_diag_event_irqs' in radio
@@ -115,7 +117,7 @@ jobs:
           assert 'sloop_bt_diag_event_irqs++' in radio_driver
           assert '"EV "' in ui and '" R "' in ui and '"RX "' in ui
           assert 'fl_erase' not in radio and 'fl_prog' not in radio
-          print('PASS: read-only RF validation gate, no calibration writes, no connect, and IRQ/scan diagnostics')
+          print('PASS: read-only RF validation, no calibration writes, discovered SMC-Mixer-only connection, IRQ/scan diagnostics')
           PY
       - name: Verification 3 - simulated FM1 OTA update and browser protocol
         run: |
