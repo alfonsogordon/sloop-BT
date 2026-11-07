@@ -1,6 +1,9 @@
 name: Locate Hortator-compatible JieLi SDK archive revisions
 on:
   workflow_dispatch:
+  push:
+    branches: [feature/smc-ble]
+    paths: [.github/workflows/jieli-sdk-history.yml]
 permissions:
   contents: read
 jobs:
