@@ -19,3 +19,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check migration preconditions without compiling or flashing
         run: python3 tools/check_jieli_migration.py
+      - name: Verify incomplete JieLi firmware cannot be built or packaged
+        run: |
+          set +e
+          SLOOP_BT_JIELI=1 python3 tools/build.py > /tmp/jieli-block.log 2>&1
+          result=$?
+          set -e
+          cat /tmp/jieli-block.log
+          if [ "$result" -eq 0 ]; then
+            echo "ERROR: incomplete JieLi build unexpectedly succeeded"
+            exit 1
+          fi
+          grep -q "JieLi BLE runtime is not integrated" /tmp/jieli-block.log
+
