@@ -178,6 +178,13 @@ def build_loader():
 # ---- app
 
 def build_app():
+    # The JieLi SDK BT controller and Optimist's direct RF controller must never
+    # own the same radio.  Reject an accidental combined build before invoking
+    # the toolchain or producing an installable package.
+    if os.environ.get("SLOOP_BT_JIELI") == "1":
+        if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1" or os.environ.get("SLOOP_BT_RADIO_MEASURE") == "1":
+            raise SystemExit("JieLi and Optimist Bluetooth backends are mutually exclusive")
+        raise SystemExit("JieLi BLE runtime is not integrated; refusing to build or package unverified firmware")
     flags = [*CFLAGS, "-Ifirmware/hal", "-Ifirmware/src", "-Ibuild/gen"]
     if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1" and os.environ.get("SLOOP_BT_SIZE_OPT") == "1":
         # Experimental ONLY: -Oz may raise DSP CPU load. Do not use in a
