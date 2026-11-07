@@ -3,9 +3,9 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 const html=fs.readFileSync('flasher/lab.html','utf8');
-const code=html.match(/<script type="module">([\\s\\S]*?)<\\/script>/)?.[1];
+const code=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
 if(!code)throw Error('lab module missing');
-const js=code.replace(/^import .*;\\s*$/gm,'');
+const js=code.replace(/^import .*;\s*$/gm,'');
 const els=new Map();
 class Element{
   constructor(id){this.id=id;this.checked=false;this.disabled=id==='install';this.value='';this.textContent='';this.listeners={};}
