@@ -79,8 +79,9 @@ jobs:
           assert 'input type="file"' not in html
           assert "preflightOK" in html and "LAB_SIZE = 610076" in html
           assert "if(hash!==LAB_SHA)" in html
-          assert "FLASH UNTESTED" in html
-          assert "rfRisk" in html and "preflight" in html
+          assert "FLASH UNTESTED" not in html and "window.prompt(" not in html
+          assert "rfRisk" not in html and "preflightDevice()" in html and "verifyFirmware()" in html
+          assert 'id="confirm"' in html and 'id="install"' in html
           root=pathlib.Path('site/index.html').read_text()
           assert "must be verified in the dedicated /lab/ flasher" in root
           PY
