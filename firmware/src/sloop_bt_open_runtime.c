@@ -182,6 +182,7 @@ static void sloop_bt_hw_poll(uint32_t now_ms)
         sloop_bt_link.scan_poll_hits=sloop_bt_diag_poll_hits;
         sloop_bt_link.rf_scan_found=fm1_ble_rf_stat.scan_found;
         sloop_bt_link.rf_scan_band=fm1_ble_rf_stat.scan_band;
+        sloop_bt_link.rf_scan_result=fm1_ble_rf_stat.scan_result;
         sloop_bt_link.rf_bad_op=fm1_ble_rf_stat.bad_op;
         sloop_bt_link.rf_bbp_timeouts=(uint16_t)fm1_ble_rf_stat.bbp_timeouts;
         sloop_bt_link.rf_spi_timeouts=(uint16_t)fm1_ble_rf_stat.spi_timeouts;
