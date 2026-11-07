@@ -40,6 +40,8 @@ typedef struct {
     uint32_t scan_events, scan_irqs; /* scan_irqs: real RX IRQ entries */
     uint32_t scan_event_irqs, scan_poll_hits;
     uint8_t scan_hw_ien, scan_hw_pending;
+    uint8_t rf_scan_found, rf_scan_band, rf_bad_op;
+    uint16_t rf_bbp_timeouts, rf_spi_timeouts;
     uint8_t rf_cal_state; /* 0 untested, 1 valid, 2 absent/invalid */
     sloop_bt_device_t devices[SLOOP_BT_DEVICES];
 } sloop_bt_link_t;
