@@ -40,7 +40,7 @@ footer{font-size:13px;color:var(--muted);padding-top:25px;border-top:1px solid v
 <section class="card full">
 <h2>One-click lab flasher</h2>
 <p>Tick one acknowledgement, then click Flash. The browser automatically downloads and verifies the exact pinned firmware, checks the connected FM1 identity and port, then starts the updater. No manual files, typed confirmations or extra buttons.</p>
-<p>Expected SHA-256: <code>f5678ba91a6e289c8894720cd63441f509726b8c58585ce2979333641c94fdd0</code></p>
+<p>Expected SHA-256: <code>082a19c80009c76da7de40cb31eb9f068c253b88d3a4cd359a2bd6aa0a8f8b60</code></p>
 <p><a href="https://github.com/alfonsogordon/sloop-BT/blob/feature/smc-ble/docs/LAB-TEST.md" target="_blank" rel="noopener">Read the SWD backup and recovery checklist before proceeding</a>.</p>
 <p>The browser fetches the firmware over HTTPS without uploading any files. Only the exact SHA-256-pinned SLOOP-BT lab build is accepted. Matching the hash does not prove hardware safety.</p>
 <div class="alert">Before flashing, back up projects and samples using the SLOOP web editor. Use a USB <strong>data</strong> cable and keep the FM1 connected until the update finishes. SWD recovery is required: USB rescue might not work after a failed radio firmware boot.</div>
@@ -62,7 +62,7 @@ footer{font-size:13px;color:var(--muted);padding-top:25px;border-top:1px solid v
 import { productOf, logicalImage, sha256hex } from '../fm1pkg.js';
 import { Updater } from '../fm1ota.js';
 const el = id => document.getElementById(id);
-const LAB_SHA = 'f5678ba91a6e289c8894720cd63441f509726b8c58585ce2979333641c94fdd0';
+const LAB_SHA = '082a19c80009c76da7de40cb31eb9f068c253b88d3a4cd359a2bd6aa0a8f8b60';
 const LAB_FILE = 'sloop-bt-optimist-lab-UNTESTED.fwsc';
 const LAB_URL = './firmware.fwsc';
 const LAB_SIZE = 610076;

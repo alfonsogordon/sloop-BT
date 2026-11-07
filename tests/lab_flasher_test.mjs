@@ -15,7 +15,7 @@ class Element{
 const el=id=>{if(!els.has(id))els.set(id,new Element(id));return els.get(id);};
 for(const id of ['status','log','install','confirm','details','progress'])el(id);
 let hash='WRONG',found='FM-1_900',loader=false,flashCount=0,port='FM1-PORT-A',serverCode=200,serverRedirect=false;
-const SHA='f5678ba91a6e289c8894720cd63441f509726b8c58585ce2979333641c94fdd0';
+const SHA='082a19c80009c76da7de40cb31eb9f068c253b88d3a4cd359a2bd6aa0a8f8b60';
 class Updater{
   constructor(access,log){}
   async find(filter){
