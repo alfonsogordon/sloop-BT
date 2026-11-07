@@ -350,6 +350,11 @@ def mmio_check():
 
 def main():
     global PRODUCT, VERSION
+    # Fail before SDK access, generated assets or loader work.
+    if os.environ.get("SLOOP_BT_JIELI") == "1":
+        if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1" or os.environ.get("SLOOP_BT_RADIO_MEASURE") == "1":
+            raise SystemExit("JieLi and Optimist Bluetooth backends are mutually exclusive")
+        raise SystemExit("JieLi BLE runtime is not integrated; refusing to build or package unverified firmware")
     ap = argparse.ArgumentParser()
     ap.add_argument("--release", metavar="X.Y", help="release build: identity FM-1_9XY, version string X.Y")
     ap.add_argument("--sdk", type=Path, help="JieLi AC79 SDK checkout (default: $AC79_SDK)")
