@@ -16,7 +16,27 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fetch Hortator-compatible AC79 SDK
         run: |
-          git clone --depth 1 --branch release/AC79NN_SDK_V1.2.0 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$RUNNER_TEMP/ac79-v120"
+          git clone --depth 80 --single-branch --branch release/AC79NN_SDK_V1.2.0 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$RUNNER_TEMP/ac79-v120"
+      - name: Restore exact Hortator-compatible archive revisions
+        run: |
+          python3 - <<'PY'
+          import subprocess, os
+          from pathlib import Path
+          root=Path(os.environ["RUNNER_TEMP"])/"ac79-v120"
+          pins={
+            "cpu/wl82/liba/btctrler.a":"5aff27a9169234db27cf02c977fed8152e8164f6",
+            "cpu/wl82/liba/btstack.a":"64afb30b805af5f5d3c2e6471e970c3fd0ba40ad",
+            "cpu/wl82/liba/wl_rf_common.a":"64afb30b805af5f5d3c2e6471e970c3fd0ba40ad",
+            "cpu/wl82/liba/crypto_toolbox_Osize.a":"bd95eac23cf1f887a3c3215ab0ef4a16183b1d07",
+            "cpu/wl82/liba/system.a":"64afb30b805af5f5d3c2e6471e970c3fd0ba40ad",
+            "cpu/wl82/liba/cpu.a":"64afb30b805af5f5d3c2e6471e970c3fd0ba40ad",
+            "cpu/wl82/liba/lib_ccm_aes.a":"bd95eac23cf1f887a3c3215ab0ef4a16183b1d07",
+          }
+          for path,rev in pins.items():
+            data=subprocess.check_output(["git","-C",str(root),"show",rev+":"+path])
+            (root/path).write_bytes(data)
+            print("RESTORED",path,rev,flush=True)
+          PY
       - name: Verify archive and config source SHA256 hashes
         env:
           AC79_BT_SDK: ${{ runner.temp }}/ac79-v120
