@@ -108,8 +108,12 @@ jobs:
           assert 'ble_hw_wl82_start(&sloop_bt_hw_trims)' in radio
           assert 'SLOOP_BT_CONNECT' in radio and '#if 0 /* reserved' in radio
           assert 'scan_events=drv.scan_evts' in radio
-          assert 'scan_irqs=fm1_ble_crumb_irqs' in radio
-          assert '"EV "' in ui and '" IRQ "' in ui and '"RX "' in ui
+          assert 'scan_irqs=sloop_bt_diag_rx_irqs' in radio
+          assert 'scan_event_irqs=sloop_bt_diag_event_irqs' in radio
+          radio_driver=Path('third_party/optimist_ble/ble_hw_wl82.c').read_text()
+          assert 'sloop_bt_diag_rx_irqs++' in radio_driver
+          assert 'sloop_bt_diag_event_irqs++' in radio_driver
+          assert '"EV "' in ui and '" R "' in ui and '"RX "' in ui
           assert 'fl_erase' not in radio and 'fl_prog' not in radio
           print('PASS: read-only RF validation gate, no calibration writes, no connect, and IRQ/scan diagnostics')
           PY
