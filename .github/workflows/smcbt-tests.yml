@@ -1,0 +1,70 @@
+name: SMC-Mixer decoder tests
+on:
+  push:
+    branches:
+      - feature/smc-ble
+  pull_request:
+    paths:
+      - firmware/src/smcbt.h
+      - firmware/src/smcbt_leds.h
+      - firmware/src/sloop_bt_drums.h
+      - firmware/src/sloop_bt_dispatch.h
+      - firmware/src/sloop_bt_control.c
+      - firmware/src/sloop_bt_ble/ble_midi.c
+      - firmware/src/sloop_bt_ble/ble_midi.h
+      - firmware/src/sloop_bt_ble/ble_scan.c
+      - firmware/src/sloop_bt_ble/ble_scan.h
+      - firmware/src/sloop_bt_link.h
+      - firmware/src/sloop_bt_midi_ring.h
+      - firmware/src/drums.c
+      - tests/smcbt_test.c
+      - tests/smcbt_leds_test.c
+      - tests/sloop_bt_drums_test.c
+      - tests/sloop_bt_dispatch_test.c
+      - tests/sloop_bt_control_test.c
+      - tests/sloop_bt_ble_midi_test.c
+      - tests/sloop_bt_ble_scan_test.c
+      - tests/sloop_bt_link_test.c
+      - tests/sloop_bt_midi_ring_test.c
+      - .github/workflows/smcbt-tests.yml
+jobs:
+  smcbt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile host unit tests
+        run: cc -std=c99 -Wall -Wextra -Werror tests/smcbt_test.c -o /tmp/smcbt_test
+      - name: Exercise SMC protocol and soft pickup
+        run: /tmp/smcbt_test
+      - name: Compile SMC LED feedback tests
+        run: cc -std=c99 -Wall -Wextra -Werror tests/smcbt_leds_test.c -o /tmp/smcbt_leds_test
+      - name: Exercise LED feedback protocol
+        run: /tmp/smcbt_leds_test
+      - name: Compile drum-lane mixer tests
+        run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_drums_test.c -o /tmp/sloop_bt_drums_test
+      - name: Exercise four drum mixer strips
+        run: /tmp/sloop_bt_drums_test
+      - name: Compile logical control dispatcher
+        run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_dispatch_test.c -o /tmp/sloop_bt_dispatch_test
+      - name: Exercise synth / drum lane button routing
+        run: /tmp/sloop_bt_dispatch_test
+      - name: Compile real firmware control adapter with host SLOOP stubs
+        run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_control_test.c -o /tmp/sloop_bt_control_test
+      - name: Exercise actual SLOOP state mutations through SMC messages
+        run: /tmp/sloop_bt_control_test
+      - name: Compile BLE-MIDI codec and SMC protocol integration test
+        run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_ble_midi_test.c firmware/src/sloop_bt_ble/ble_midi.c -o /tmp/sloop_bt_ble_midi_test
+      - name: Exercise BLE wire codec, running status and LED packing
+        run: /tmp/sloop_bt_ble_midi_test
+      - name: Compile BLE single-controller link model
+        run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_link_test.c -o /tmp/sloop_bt_link_test
+      - name: Check scan, device list, connection and reconnect pacing
+        run: /tmp/sloop_bt_link_test
+      - name: Compile and exercise interrupt-to-main MIDI ring
+        run: |
+          cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_midi_ring_test.c -o /tmp/sloop_bt_midi_ring_test
+          /tmp/sloop_bt_midi_ring_test
+      - name: Compile real BLE advertisement parser
+        run: cc -std=c99 -Wall -Wextra -Werror tests/sloop_bt_ble_scan_test.c -o /tmp/sloop_bt_ble_scan_test
+      - name: Exercise scan, SMC service UUID, RSSI ordering and malformed data
+        run: /tmp/sloop_bt_ble_scan_test

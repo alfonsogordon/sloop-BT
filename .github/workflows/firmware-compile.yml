@@ -1,0 +1,100 @@
+name: Experimental FM1 firmware compile (no release)
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - firmware/src/felucca.c
+      - firmware/src/drums.c
+      - firmware/src/ui_menu.c
+      - firmware/src/main.c
+      - firmware/src/sloop_bt_control.c
+      - firmware/src/sloop_bt_ble/**
+      - firmware/hal/fm1_bt_barrier.h
+      - firmware/src/sloop_bt_midi_ring.h
+      - firmware/src/sloop_bt_link.h
+      - firmware/src/sloop_bt_dispatch.h
+      - firmware/src/sloop_bt_drums.h
+      - firmware/src/smcbt.h
+      - firmware/src/smcbt_leds.h
+      - tools/build.py
+      - tools/bt_size_report.py
+      - .github/workflows/firmware-compile.yml
+permissions:
+  contents: read
+jobs:
+  compile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: baseline
+            bt_control: "0"
+            bt_drum_mix: "0"
+            uac: "1"
+            icons: "1"
+            logo: "0"
+            uart: "1"
+            visualizer: "1"
+          - variant: controller-no-radio
+            bt_control: "1"
+            bt_drum_mix: "1"
+            uac: "1"
+            icons: "1"
+            logo: "0"
+            uart: "1"
+            visualizer: "1"
+          - variant: lean-no-visualizer
+            bt_control: "1"
+            bt_drum_mix: "1"
+            uac: "0"
+            icons: "0"
+            logo: "1"
+            uart: "1"
+            visualizer: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq git git-lfs curl xz-utils python3-pil
+      - name: Retrieve pinned official JieLi toolchain
+        run: |
+          sh tools/get_toolchain.sh "$HOME/.jieli"
+          test -x "$HOME/.jieli/toolchain/pi32v2/bin/clang"
+      - name: Retrieve AC79 SDK reference
+        run: |
+          for attempt in 1 2 3; do
+            git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK" && break
+            rm -rf "$HOME/fw-AC79_AIoT_SDK"
+            sleep 3
+          done
+          test -f "$HOME/fw-AC79_AIoT_SDK/cpu/wl82/tools/uboot.boot"
+      - name: Compile firmware and enforce firmware memory limits
+        env:
+          SLOOP_BT_CONTROL: ${{ matrix.bt_control }}
+          SLOOP_BT_DRUM_MIX: ${{ matrix.bt_drum_mix }}
+          FELUCCA_UAC: ${{ matrix.uac }}
+          FELUCCA_ICONS: ${{ matrix.icons }}
+          FELUCCA_LOGO_TEXT: ${{ matrix.logo }}
+          FELUCCA_UART: ${{ matrix.uart }}
+          SLOOP_BT_VISUALIZER: ${{ matrix.visualizer }}
+        run: |
+          set -o pipefail
+          sh build.sh 2>&1 | tee "build-${{ matrix.variant }}.log"
+          test -s build/felucca.bin
+          test -s build/felucca.fwsc
+          echo "Firmware target compile successful: ${{ matrix.variant }}"
+      - name: Report largest XIP and RAM symbols
+        run: python3 tools/bt_size_report.py | tee "symbols-${{ matrix.variant }}.txt"
+      - name: Upload compile logs, NOT flashable firmware
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.variant }}
+          path: |
+            build-${{ matrix.variant }}.log
+            symbols-${{ matrix.variant }}.txt
+          if-no-files-found: ignore

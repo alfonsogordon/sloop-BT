@@ -1,0 +1,85 @@
+name: Measure Optimist BLE protocol on FM1 (never flash)
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - third_party/optimist_ble/**
+      - firmware/src/sloop_bt_open_measure.c
+      - firmware/src/sloop_bt_open_runtime.c
+      - firmware/src/ui_menu.c
+      - firmware/hal/fm1_bt_barrier.h
+      - firmware/src/sloop_bt_midi_ring.h
+      - firmware/src/felucca.c
+      - firmware/src/main.c
+      - tools/build.py
+      - .github/workflows/optimist-target-measure.yml
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: real-radio-diagnostic
+            radio: "1"
+            splash: "1"
+            sizeopt: "0"
+            physical: "0"
+          - variant: real-radio-no-splash-oz
+            radio: "1"
+            splash: "0"
+            sizeopt: "1"
+            physical: "0"
+          - variant: real-radio-physical-oz
+            radio: "1"
+            splash: "0"
+            sizeopt: "1"
+            physical: "1"
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-pil git curl xz-utils
+          sh tools/get_toolchain.sh "$HOME/.jieli"
+          for attempt in 1 2 3; do
+            git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK" && break
+            rm -rf "$HOME/fw-AC79_AIoT_SDK"
+            sleep 3
+          done
+          test -f "$HOME/fw-AC79_AIoT_SDK/cpu/wl82/tools/uboot.boot"
+      - name: Validate Optimist real-radio size (no firmware package)
+        env:
+          SLOOP_BT_OPEN_MEASURE: "1"
+          SLOOP_BT_RADIO_MEASURE: ${{ matrix.radio }}
+          SLOOP_BT_SPLASH: ${{ matrix.splash }}
+          SLOOP_BT_SIZE_OPT: ${{ matrix.sizeopt }}
+          SLOOP_BT_PHYSICAL_FIT: ${{ matrix.physical }}
+          SLOOP_BT_CONTROL: "1"
+          SLOOP_BT_DRUM_MIX: "1"
+          SLOOP_BT_VISUALIZER: "0"
+          FELUCCA_UAC: "0"
+          FELUCCA_ICONS: "0"
+          FELUCCA_LOGO_TEXT: "1"
+          FELUCCA_UART: "1"
+        run: |
+          set -o pipefail
+          sh build.sh 2>&1 | tee "measurement-${{ matrix.variant }}.log"
+          grep -q "OPEN-STACK PROTOCOL MEASUREMENT ONLY" "measurement-${{ matrix.variant }}.log"
+          grep -q "NO INSTALLABLE FIRMWARE" "measurement-${{ matrix.variant }}.log"
+          test ! -e build/felucca.fwsc
+          test ! -e build/felucca.bin
+          python3 tools/bt_size_report.py > "symbols-${{ matrix.variant }}.txt"
+      - name: Upload nonflashable measurement logs only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: optimist-open-size-${{ matrix.variant }}
+          path: |
+            measurement-${{ matrix.variant }}.log
+            symbols-${{ matrix.variant }}.txt
+          if-no-files-found: ignore

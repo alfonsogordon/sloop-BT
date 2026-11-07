@@ -179,8 +179,17 @@ def build_loader():
 
 def build_app():
     flags = [*CFLAGS, "-Ifirmware/hal", "-Ifirmware/src", "-Ibuild/gen"]
+    if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1" and os.environ.get("SLOOP_BT_SIZE_OPT") == "1":
+        # Experimental ONLY: -Oz may raise DSP CPU load. Do not use in a
+        # flashable/release build before audio hashes and timings pass.
+        flags = ["-Oz" if flag == "-Os" else flag for flag in flags]
+    if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1":
+        flags.append("-Ithird_party/optimist_ble/hal")
     for flag in ("FELUCCA_FLASH", "FELUCCA_OTA", "FELUCCA_OTA_DRYRUN", "FELUCCA_CDC", "FELUCCA_UART",
-                 "FELUCCA_ICONS", "FELUCCA_SLICE", "FELUCCA_CPU1", "FELUCCA_LOGO_TEXT"):
+                 "FELUCCA_ICONS", "FELUCCA_SLICE", "FELUCCA_CPU1", "FELUCCA_LOGO_TEXT",
+                 "FELUCCA_UAC", "FELUCCA_UAC_48K",
+                 "SLOOP_BT_CONTROL", "SLOOP_BT_DRUM_MIX", "SLOOP_BT_VISUALIZER", "SLOOP_BT_OPEN_MEASURE",
+                 "SLOOP_BT_RADIO_MEASURE", "SLOOP_BT_SPLASH"):
         v = os.environ.get(flag)    # unset: the default in firmware/src/felucca.c
         if v in ("0", "1"):
             flags.append(f"-D{flag}={v}")
@@ -193,7 +202,15 @@ def build_app():
            ("cc", "-c", FW / "hal" / "fm1_cpu1.S", "-o", OUT / "fm1_cpu1.o"),
            ("cc", *flags, "-c", FW / "src" / "felucca.c", "-o", OUT / "felucca.o"))
     elf = OUT / "felucca.elf"
-    tc("pi32v2/bin/ld", "-T", FW / "app.ld", OUT / "crt0.o", OUT / "fm1_vec.o", OUT / "fm1_isr.o",
+    ld_script = FW / "app.ld"
+    if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1" and os.environ.get("SLOOP_BT_PHYSICAL_FIT") != "1":
+        # Diagnostic-only: permit an XIP region larger than physical FM1.
+        # Absolutely never use this linker script for an installable image.
+        measure = (FW / "app.ld").read_text().replace(
+            "LENGTH = 0x8DFBC", "LENGTH = 0x180000", 1)
+        ld_script = OUT / "app-open-measure.ld"
+        ld_script.write_text(measure)
+    tc("pi32v2/bin/ld", "-T", ld_script, OUT / "crt0.o", OUT / "fm1_vec.o", OUT / "fm1_isr.o",
        OUT / "fm1_cpu1.o", OUT / "felucca.o", "-o", elf)
     for sect in ("text.bin", "data.bin", "ramtext.bin", "c1text.bin"):
         (OUT / sect).unlink(missing_ok=True)
@@ -318,6 +335,28 @@ def main():
     ap.add_argument("--sdk", type=Path, help="JieLi AC79 SDK checkout (default: $AC79_SDK)")
     a = ap.parse_args()
     name = "felucca.fwsc"
+    lab = os.environ.get("SLOOP_BT_LAB_PACKAGE") == "1"
+    if lab:
+        required = {
+            "SLOOP_BT_OPEN_MEASURE": "1",
+            "SLOOP_BT_PHYSICAL_FIT": "1",
+            "SLOOP_BT_RADIO_MEASURE": "1",
+            "SLOOP_BT_CONTROL": "1",
+            "SLOOP_BT_DRUM_MIX": "1",
+            "SLOOP_BT_SPLASH": "0",
+            "SLOOP_BT_SIZE_OPT": "1",
+            "SLOOP_BT_VISUALIZER": "0",
+            "FELUCCA_UAC": "0",
+            "FELUCCA_ICONS": "0",
+        }
+        wrong = [k for k,v in required.items() if os.environ.get(k) != v]
+        if wrong:
+            raise SystemExit("LAB PACKAGE: unsafe/missing required profile flags: " + ", ".join(wrong))
+        if a.release:
+            raise SystemExit("LAB PACKAGE: official release identity forbidden")
+        name = "sloop-bt-optimist-lab-UNTESTED.fwsc"
+        VERSION = "SLOOP-BT LAB"
+        print("LAB PACKAGE REQUESTED: unverified FM1 radio; only for units with SWD recovery")
     if a.release:                   # one digit each: the identity has room for two
         m = re.fullmatch(r"(\d)\.(\d)(-[A-Za-z0-9]+)?", a.release)
         if not m:
@@ -343,6 +382,29 @@ def main():
         print("build: the flash is full: building again with the boot logo as text (FELUCCA_LOGO_TEXT=1, 4.6 KB less)")
         os.environ["FELUCCA_LOGO_TEXT"] = "1"
         img, syms, dis, rt = build_app()
+    if os.environ.get("SLOOP_BT_OPEN_MEASURE") == "1" and not lab:
+        # Diagnostic-only: never produce a flashable file. The
+        # lab-package mode below is a separate, explicitly gated path.
+        (OUT / "felucca.bin").unlink(missing_ok=True)
+        for old_pkg in OUT.glob("*.fwsc"):
+            old_pkg.unlink()
+        errors, notes = check(img, syms, dis, rt)
+        # Only XIP-slot overage is allowed in the oversized diagnostic.
+        # Every other boot, RAM, pool, vector and safety check is mandatory.
+        if os.environ.get("SLOOP_BT_PHYSICAL_FIT") != "1":
+            errors = [e for e in errors if not (e.startswith("image ") and
+                      "exceeds the app slot" in e)]
+        errors += mmio_check()
+        for n in notes:
+            print("  diagnostic ", n)
+        for e in errors:
+            print("  FAIL ", e)
+        print(f"OPEN-STACK PROTOCOL MEASUREMENT ONLY: XIP {len(img)} B "
+              f"({len(img) - APP_SLOT:+d} B over physical FM1 slot)")
+        print("NO INSTALLABLE FIRMWARE OR PACKAGE GENERATED")
+        if errors:
+            raise SystemExit("measurement: non-XIP safety checks failed")
+        return 0
     errors, notes = check(img, syms, dis, rt)
     hal_err = mmio_check()
     errors += hal_err
@@ -356,6 +418,10 @@ def main():
         raise SystemExit("build: checks failed")
     pkg = fm1pkg_make.ufw(fm1pkg_make.flash_image(img, fm1pkg_make.KEY), ota, PRODUCT)
     (OUT / name).write_bytes(pkg)
+    if lab:
+        print("WARNING: SLOOP-BT OPTIMIST LAB / HARDWARE UNTESTED")
+        print("Recovery equipment and original firmware backup required before flashing")
+        print("Bluetooth is OFF at boot; only manually enabled through experimental menu")
     att = SRC / "assets" / "samples-cc0" / "ATTRIBUTION.txt"
     if att.exists():
         shutil.copy(att, OUT / "ATTRIBUTION.txt")

@@ -1,0 +1,126 @@
+name: Publish SLOOP-BT Web Flasher
+on:
+  push:
+    branches: [feature/smc-ble]
+    paths:
+      - flasher/**
+      - mixer/**
+      - tests/lab_flasher_test.mjs
+      - web/fm1pkg.js
+      - web/fm1ota.js
+      - .github/workflows/publish-flasher.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages-sloop-bt
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: sloop-bt-test-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble static site
+        run: |
+          mkdir -p site/mixer site/lab
+          cp flasher/index.html site/index.html
+          cp flasher/lab.html site/lab/index.html
+          cp mixer/index.html site/mixer/index.html
+          cp web/fm1pkg.js web/fm1ota.js site/
+          test ! -e site/*.fwsc
+          grep -q 'local firmware package' site/index.html
+      - name: Retrieve exact pinned firmware from successful verified lab build
+        uses: actions/download-artifact@v4
+        with:
+          name: UNTESTED-SLOOP-BT-requires-SWD-recovery
+          run-id: 42370980342
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: alfonsogordon/sloop-BT
+          path: candidate
+      - name: Verify latest exact firmware and pin its digest into flasher
+        run: |
+          set -eu
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          found=list(Path('candidate').rglob('sloop-bt-optimist-lab-UNTESTED.fwsc'))
+          assert len(found)==1, ('Expected exactly one lab package',found)
+          data=found[0].read_bytes()
+          digest=hashlib.sha256(data).hexdigest()
+          assert len(data)==610076, 'Unexpected FM1 package length'
+          recorded=list(Path('candidate').rglob('lab-sha256.txt'))
+          assert len(recorded)==1 and recorded[0].read_text().split()[0]==digest, 'Build hash mismatch'
+          html=Path('site/lab/index.html')
+          source=html.read_text()
+          old='082a19c80009c76da7de40cb31eb9f068c253b88d3a4cd359a2bd6aa0a8f8b60'
+          assert source.count(old)>=2, 'Missing old pinned hash'
+          html.write_text(source.replace(old,digest))
+          test=Path('tests/lab_flasher_test.mjs')
+          content=test.read_text()
+          assert old in content
+          test.write_text(content.replace(old,digest))
+          Path('site/lab/firmware.fwsc').write_bytes(data)
+          print('Verified exact lab build and pinned SHA-256:',digest)
+          PY
+      - name: Basic JavaScript syntax checks
+        run: |
+          python3 - <<'PY'
+          import re, pathlib
+          html=pathlib.Path('site/mixer/index.html').read_text()
+          match=re.search(r'<script type="module">(.*?)</script>',html,re.S)
+          assert match, 'mixer module script not found'
+          pathlib.Path('/tmp/sloop_bt_mixer.mjs').write_text(match.group(1))
+          PY
+          node --check /tmp/sloop_bt_mixer.mjs
+          python3 - <<'PY'
+          import re, pathlib
+          html=pathlib.Path('site/lab/index.html').read_text()
+          match=re.search(r'<script type="module">(.*?)</script>', html, re.S)
+          assert match, "lab flasher module script missing"
+          pathlib.Path('/tmp/sloop_bt_lab.mjs').write_text(match.group(1))
+          assert 'const LAB_SHA = ' in html and 'LAB_SIZE = 610076' in html
+          assert "fetch('./firmware.fwsc'" in html
+          assert 'input type="file"' not in html
+          assert "preflightOK" in html and "LAB_SIZE = 610076" in html
+          assert "if(hash!==LAB_SHA)" in html
+          assert "FLASH UNTESTED" not in html and "window.prompt(" not in html
+          assert "rfRisk" not in html and "preflightDevice()" in html and "verifyFirmware()" in html
+          assert 'id="confirm"' in html and 'id="install"' in html
+          root=pathlib.Path('site/index.html').read_text()
+          assert "must be verified in the dedicated /lab/ flasher" in root
+          PY
+          node --check /tmp/sloop_bt_lab.mjs
+          cp site/fm1pkg.js /tmp/fm1pkg.mjs
+          cp site/fm1ota.js /tmp/fm1ota.mjs
+          node --check /tmp/fm1pkg.mjs
+          node --check /tmp/fm1ota.mjs
+      - name: Simulate all lab flasher safety gates without a MIDI device
+        run: LAB_FLASHER_HTML=site/lab/index.html node tests/lab_flasher_test.mjs
+      - name: Downloadable offline test bundle (independent of Pages)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sloop-bt-web-test-bundle
+          path: site
+          retention-days: 30
+      - id: pages
+        uses: actions/configure-pages@v5
+        continue-on-error: true
+      - name: Explain unavailable Pages hosting
+        if: steps.pages.outcome != 'success'
+        run: |
+          echo "::warning::GitHub Pages was not enabled. The lab flasher is built but NOT hosted. Repo owner must enable Settings > Pages > Source: GitHub Actions."
+          echo "## Pages not live" >> "$GITHUB_STEP_SUMMARY"
+          echo "Enable GitHub Pages at https://github.com/alfonsogordon/sloop-BT/settings/pages and re-run this workflow." >> "$GITHUB_STEP_SUMMARY"
+      - if: steps.pages.outcome == 'success'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        if: steps.pages.outcome == 'success'
+        uses: actions/deploy-pages@v4
