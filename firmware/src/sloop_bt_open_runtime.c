@@ -160,6 +160,9 @@ static void sloop_bt_hw_poll(uint32_t now_ms)
          * as a per-boot interrupt counter. */
         sloop_bt_link.scan_irqs=sloop_bt_diag_rx_irqs;
         sloop_bt_link.scan_event_irqs=sloop_bt_diag_event_irqs;
+        sloop_bt_link.scan_poll_hits=sloop_bt_diag_poll_hits;
+        sloop_bt_link.scan_hw_ien=(uint8_t)((FM1_BLE_IEN >> 8) & 1u);
+        sloop_bt_link.scan_hw_pending=(uint8_t)((FM1_BLE_IPND >> 8) & 1u);
     }
     if(sloop_bt_link.state==SLOOP_BT_SCANNING) {
         n=ble_scan_discovery_list(&sloop_bt_hw_scan,indexes);

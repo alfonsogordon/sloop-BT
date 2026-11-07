@@ -109,9 +109,17 @@ UI_SMALL static const char *mi_value(uint32_t i, uint16_t *c)
         static char stats[32];
         if(sloop_bt_link.state!=SLOOP_BT_SCANNING)
             return sloop_bt_link_status(&sloop_bt_link);
-        /* Alternate the advertisement summary and radio/interrupt path.
-         * A running SCANNING UI alone does NOT prove that hardware works. */
-        if((fm1_ms / 4000u) & 1u) {
+        /* Rotate receive counts, IRQ and hardware enable/poll diagnostic. */
+        if((fm1_ms / 4000u) % 3u == 2u) {
+            str_cpy(stats,"EN ",sizeof stats);
+            fmt_int(stats+str_len(stats),sloop_bt_link.scan_hw_ien);
+            str_cpy(stats+str_len(stats)," PD ",sizeof stats-str_len(stats));
+            fmt_int(stats+str_len(stats),sloop_bt_link.scan_hw_pending);
+            str_cpy(stats+str_len(stats)," BUF ",sizeof stats-str_len(stats));
+            fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_poll_hits);
+            return stats;
+        }
+        if((fm1_ms / 4000u) % 3u == 1u) {
             str_cpy(stats,"EV ",sizeof stats);
             fmt_int(stats+str_len(stats),(int32_t)sloop_bt_link.scan_events);
             str_cpy(stats+str_len(stats)," R ",sizeof stats-str_len(stats));
@@ -180,8 +188,9 @@ UI_SMALL static void draw_menu(void)
                     + sloop_bt_link.state * 4040101u + sloop_bt_link.count * 401009u +
                     sloop_bt_link.scan_reports * 131u + sloop_bt_link.scan_kept * 37u + sloop_bt_link.scan_bad * 997u +
                     sloop_bt_link.scan_events * 17u + sloop_bt_link.scan_irqs * 31u +
-                    sloop_bt_link.scan_event_irqs * 13u +
-                    ((sloop_bt_link.state==SLOOP_BT_SCANNING) ? (fm1_ms/4000u & 1u) * 1000003u : 0u) +
+                    sloop_bt_link.scan_event_irqs * 13u + sloop_bt_link.scan_poll_hits * 23u +
+                    sloop_bt_link.scan_hw_ien * 149u + sloop_bt_link.scan_hw_pending * 73u +
+                    ((sloop_bt_link.state==SLOOP_BT_SCANNING) ? (fm1_ms/4000u % 3u) * 1000003u : 0u) +
                     sloop_bt_mix.assignment[0] * 1301u + sloop_bt_mix.assignment[1] * 2909u +
                     sloop_bt_mix.assignment[2] * 4519u + sloop_bt_mix.assignment[3] * 7919u
 #endif

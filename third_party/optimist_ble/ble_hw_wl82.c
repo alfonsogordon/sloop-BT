@@ -1179,11 +1179,23 @@ void ble_wl82_event_irq(void)           /* IRQ 45, via isr_ble_event */
         BLE_DG(ble_dg.adv_events++);
 #if BLE_CENTRAL
     if (drv.state == HW_SCAN) {
-        if (fm1_ble_rx_pending(HW_LINK)) {                 /* this window's last report first */
+        /* The FM1 reports event IRQs but no RX IRQs during scanning.
+         * Recover packets which DMA deposited without raising RX IRQ 29:
+         * inspect RX control/header status at the end of EVERY scan
+         * window, just as the advertising path handles late data.
+         * hw_rx_scan only drains buffers flagged by hardware; it never
+         * fabricates a report. Keep this bounded to one call per event.
+         */
+        if (fm1_ble_rx_pending(HW_LINK))
             fm1_ble_rx_ack(HW_LINK);
-            RING_PUBLISH();
-            hw_rx_scan();
-        }
+#if defined(SLOOP_BT_RADIO_MEASURE) && SLOOP_BT_RADIO_MEASURE
+        if ((CB->rxbufcntl[0] | CB->rxbufcntl[1]) & 1u ||
+            CB->rxdhdr[0] || CB->rxdhdr[1] ||
+            CB->rxstat[0] || CB->rxstat[1])
+            sloop_bt_diag_poll_hits++;
+#endif
+        RING_PUBLISH();
+        hw_rx_scan();
         hw_scan_event();
         fm1_ble_event_tail(HW_LINK);
         hw_isr_end(t0);

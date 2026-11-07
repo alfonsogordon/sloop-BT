@@ -30,6 +30,7 @@
 #if SLOOP_BT_RADIO_MEASURE
 static volatile uint32_t sloop_bt_diag_rx_irqs;
 static volatile uint32_t sloop_bt_diag_event_irqs;
+static volatile uint32_t sloop_bt_diag_poll_hits;
 #endif
 #include "../../third_party/optimist_ble/ble_stack.c"
 #if SLOOP_BT_RADIO_MEASURE
